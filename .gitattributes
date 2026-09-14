@@ -1,0 +1,3 @@
+# Tag nson/* and nson/**/* as C++ for Github's language detection
+nson/* linguist-language=C++
+nson/**/* linguist-language=C++

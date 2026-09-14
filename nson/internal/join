@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 us4us Ltd.
 // SPDX-License-Identifier: MIT
 
-#ifndef NSON_INTERNAL_JOIN_H
-#define NSON_INTERNAL_JOIN_H
+#pragma once
 
 #include <algorithm>
 #include <concepts>
@@ -13,7 +12,7 @@
 #include <string>
 #include <vector>
 
-#include "string.h"
+#include "string"
 
 namespace nson::internal::join {
 
@@ -67,5 +66,3 @@ concept supports_join = requires(T &t, const std::string &s) {
 };
 
 }// namespace nson::internal::join
-
-#endif// NSON_INTERNAL_JOIN_H

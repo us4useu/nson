@@ -35,7 +35,7 @@ class NsonConan(ConanFile):
         headers = os.path.join(repo_root, "nson")
         if not os.path.isdir(headers):
             return
-        copy(self, "*.h", src=headers,
+        copy(self, "*", src=headers,
              dst=os.path.join(self.export_sources_folder, "nson"))
         license_file = os.path.join(repo_root, "LICENSE")
         if os.path.isfile(license_file):
@@ -58,7 +58,7 @@ class NsonConan(ConanFile):
         self.info.clear()
 
     def package(self):
-        copy(self, "*.h",
+        copy(self, "*",
              src=os.path.join(self.source_folder, "nson"),
              dst=os.path.join(self.package_folder, "include", "nson"))
         license_file = os.path.join(self.source_folder, "LICENSE")

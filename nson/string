@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 us4us Ltd.
 // SPDX-License-Identifier: MIT
 
-#ifndef NSON_STRING_H
-#define NSON_STRING_H
+#pragma once
 
 #include <algorithm>
 #include <concepts>
@@ -14,9 +13,9 @@
 #include <string>
 #include <vector>
 
-#include "concepts.h"
-#include "internal/join.h"
-#include "internal/string.h"
+#include "concepts"
+#include "internal/join"
+#include "internal/string"
 
 namespace nson {
 
@@ -97,5 +96,3 @@ inline std::string trim(const std::string &s) {
 }
 
 }// namespace nson
-
-#endif// NSON_STRING_H

@@ -1,0 +1,22 @@
+// SPDX-FileCopyrightText: Copyright (c) 2026 us4us Ltd.
+// SPDX-License-Identifier: MIT
+
+#pragma once
+
+namespace nson {
+/** 
+ * A type trait that provides a safe underlying type for a given type.
+ * If the type is an enum, it will provide the underlying type.
+ * Otherwise, it will provide the type itself.
+ */
+template<typename T, bool = std::is_enum_v<T>> struct safe_underlying_type {
+    using Type = T;
+};
+
+template<typename T> struct safe_underlying_type<T, true> {
+    using Type = std::underlying_type_t<T>;
+};
+
+template<typename T> using safe_underlying_type_t = typename safe_underlying_type<T>::Type;
+
+};// namespace nson

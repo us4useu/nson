@@ -1,0 +1,36 @@
+// SPDX-FileCopyrightText: Copyright (c) 2026 us4us Ltd.
+// SPDX-License-Identifier: MIT
+
+#pragma once
+
+#include <cstddef>
+#include <type_traits>
+
+namespace nson::bits {
+
+/** 
+ * Creates a bitmask for a given range of bits.
+ * @param upper The upper bit position (inclusive).
+ * @param lower The lower bit position (inclusive).
+ * @return A bitmask with the specified range set.
+ */
+template<typename T>
+    requires(std::is_integral_v<T>)
+constexpr T make_mask(std::size_t upper, std::size_t lower) {
+    std::size_t bits = upper - lower + 1;
+    T m = (bits == sizeof(T) * 8) ? ~static_cast<T>(0) : ((static_cast<T>(1) << bits) - 1);
+    return m << lower;
+}
+
+/**
+ * Aligns a value to the nearest multiple of alignment.
+ * @param value The value to be aligned.
+ * @param alignment The alignment boundary.
+ * @return The aligned value.
+ */
+template<typename T>
+    requires(std::is_integral_v<T>)
+constexpr T align_up(T value, T alignment) {
+    return (value + alignment - 1) & ~(alignment - 1);
+}
+}// namespace nson::bits

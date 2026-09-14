@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 us4us Ltd.
 // SPDX-License-Identifier: MIT
 
-#ifndef NSON_INTERNAL_STRING_H
-#define NSON_INTERNAL_STRING_H
+#pragma once
 
 #include <algorithm>
 #include <concepts>
@@ -155,5 +154,3 @@ concept supports_to_string = requires(const T &t) {
 };
 
 }// namespace nson::internal::string
-
-#endif// NSON_INTERNAL_STRING_H

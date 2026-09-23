@@ -1,0 +1,54 @@
+// SPDX-FileCopyrightText: Copyright (c) 2026 us4us Ltd.
+// SPDX-License-Identifier: MIT
+
+#pragma once
+
+#include <nson/compiler>
+#include <string_view>
+
+// Even if we don't use a specific compiler-specific macro it still needs to be defined
+#if _MSC_VER
+#define __PRETTY_FUNCTION__ "(you shouldn't see this)"
+#elif defined(__GNUC__) || defined(__clang__)
+#define __FUNCSIG__ "(you shouldn't see this)"
+#endif
+
+namespace nson::reflection {
+
+template<typename T, Compiler C = nson::COMPILER> struct type_name_s {
+    constexpr static std::string_view value() { return "nson::reflection::type_name: NYI for this compiler"; }
+};
+
+template<typename T> struct type_name_s<T, Compiler::CLANG> {
+    constexpr static std::string_view value() {
+        constexpr std::string_view sig = __PRETTY_FUNCTION__;
+        size_t prefix_len = sig.find("[T = ") + 5;
+        size_t suffix_len = sig.length() - sig.find_last_of(', C = ') + 5;
+        return sig.substr(prefix_len, sig.length() - prefix_len - suffix_len);
+    }
+};
+
+template<typename T> struct type_name_s<T, Compiler::GCC> {
+    constexpr static std::string_view value() {
+        constexpr std::string_view sig = __PRETTY_FUNCTION__;
+        size_t prefix_len = sig.find("with T = ") + 9;
+        size_t suffix_len = sig.length() - sig.find_last_of(', C = ') + 5;
+        return sig.substr(prefix_len, sig.length() - prefix_len - suffix_len);
+    }
+};
+
+template<typename T> struct type_name_s<T, Compiler::MSVC> {
+    constexpr static std::string_view value() {
+        constexpr std::string_view sig = __FUNCSIG__;
+        size_t prefix_len = sig.find("type_name_s<") + 10;
+        size_t suffix_len = sig.length() - sig.find_last_of(', C = ') + 5;
+        return sig.substr(prefix_len, sig.length() - prefix_len - suffix_len);
+    }
+};
+
+/*
+ * Returns the name of the type T as a string_view. This is useful for debugging and logging purposes.
+*/
+template<typename T> inline constexpr std::string_view type_name = type_name_s<T>::value();
+
+};// namespace nson::reflection

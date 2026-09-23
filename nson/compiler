@@ -1,0 +1,31 @@
+// SPDX-FileCopyrightText: Copyright (c) 2026 us4us Ltd.
+// SPDX-License-Identifier: MIT
+
+#pragma once
+
+namespace nson {
+
+enum class Compiler { CLANG, GCC, MSVC, UNKNOWN };
+
+/**
+ * A static, constexpr variable that holds the current compiler being used to compile the code.
+ */
+
+#if defined(__clang__)
+constexpr Compiler COMPILER = Compiler::CLANG;
+#endif
+
+// Clang defines __GNUC__ for whatever reason
+#if defined(__GNUC__) && !defined(__clang__)
+constexpr Compiler COMPILER = Compiler::GCC;
+#endif
+
+#if defined(_MSC_VER)
+constexpr Compiler COMPILER = Compiler::MSVC;
+#endif
+
+#if !defined(__clang__) && !defined(__GNUC__) && !defined(_MSC_VER)
+constexpr Compiler COMPILER = Compiler::UNKNOWN;
+#endif
+
+}; // namespace nson

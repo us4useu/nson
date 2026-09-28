@@ -5,7 +5,12 @@
 
 namespace nson {
 
+// Compilers enumeration for detecting a specific "family" of compilers (e.g., Clang, GCC, MSVC)
 enum class Compiler { CLANG, GCC, MSVC, UNKNOWN };
+
+// More specific version of the above, intended to differentiate between some considerably different
+// variants of the same compiler (e.g., clang vs. clang-cl)
+enum class CompilerSpecific { CLANG, CLANG_CL, GCC, MSVC, UNKNOWN };
 
 /**
  * A static, constexpr variable that holds the current compiler being used to compile the code.
@@ -13,19 +18,28 @@ enum class Compiler { CLANG, GCC, MSVC, UNKNOWN };
 
 #if defined(__clang__)
 constexpr Compiler COMPILER = Compiler::CLANG;
+#if defined(_MSC_VER)
+constexpr CompilerSpecific COMPILER_SPECIFIC = CompilerSpecific::CLANG_CL;
+#else
+constexpr CompilerSpecific COMPILER_SPECIFIC = CompilerSpecific::CLANG;
+#endif
 #endif
 
 // Clang defines __GNUC__ for whatever reason
 #if defined(__GNUC__) && !defined(__clang__)
 constexpr Compiler COMPILER = Compiler::GCC;
+constexpr CompilerSpecific COMPILER_SPECIFIC = CompilerSpecific::GCC;
 #endif
 
-#if defined(_MSC_VER)
+// clang-cl defines both __clang__ and _MSC_VER
+#if defined(_MSC_VER) && !defined(__clang__)
 constexpr Compiler COMPILER = Compiler::MSVC;
+constexpr CompilerSpecific COMPILER_SPECIFIC = CompilerSpecific::MSVC;
 #endif
 
 #if !defined(__clang__) && !defined(__GNUC__) && !defined(_MSC_VER)
 constexpr Compiler COMPILER = Compiler::UNKNOWN;
+constexpr CompilerSpecific COMPILER_SPECIFIC = CompilerSpecific::UNKNOWN;
 #endif
 
-}; // namespace nson
+};// namespace nson

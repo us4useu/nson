@@ -1,0 +1,34 @@
+// SPDX-FileCopyrightText: Copyright (c) 2026 us4us Ltd.
+// SPDX-License-Identifier: MIT
+
+#pragma once
+
+// This file will be almost exclusively macros;
+// this is by design and an exception to the general rule of avoiding macros in nson
+
+#if defined(__clang__) && defined(_MSC_VER)
+// clang-cl environment: __cpp_exceptions is unreliable
+// Trust MSVC's native unwinding macro instead.
+#ifdef _CPPUNWIND
+#define __nson_has_working_exceptions 1
+#else
+#define __nson_has_working_exceptions 0
+#endif
+#else
+// Standard GCC/Clang/MSVC environments
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)
+#define __nson_has_working_exceptions 1
+#else
+#define __nson_has_working_exceptions 0
+#endif
+#endif
+
+// constexpr versions of the above macros
+namespace nson::features {
+
+/* 
+ * A flag to check whether the current compiler environment has working C++ exceptions enabled.
+ * The standard for "working exceptions" is whether the compiler won't die when presented with a `throw`
+ */
+constexpr bool WORKING_EXCEPTIONS = __nson_has_working_exceptions;
+}// namespace nson::features

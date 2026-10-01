@@ -1,0 +1,46 @@
+// SPDX-FileCopyrightText: Copyright (c) 2026 us4us Ltd.
+// SPDX-License-Identifier: MIT
+
+#pragma once
+
+#include <concepts>
+#include <cstddef>
+#include <type_traits>
+
+#include "internal/math"
+
+using namespace nson::internal::math;
+
+namespace nson {
+
+/**
+ * A constant expression that computes the power of a base raised to an exponent at compile time.
+ * Useful, as:
+ * 1. std::pow isn't constexpr until C++26;
+ * 2. std::pow provides no integral variant.
+ *
+ * @tparam base The base value.
+ * @tparam exp The exponent value.
+ * @return The result of base raised to the power of exp.
+ */
+template<auto base, std::size_t exp>
+    requires(std::is_integral_v<decltype(base)>)
+constexpr auto pow = pow_impl<decltype(base), base, exp>::value;
+
+/**
+ * Computes the absolute value of a number at compile time.
+ *
+ * @tparam T The type of the number.
+ * @param value The number to compute the absolute value of.
+ * @return The absolute value of the number.
+ */
+template<typename T>
+constexpr T abs(T value) {
+    if constexpr (std::is_signed_v<T>) {
+        return value < 0 ? -value : value;
+    } else {
+        return value;
+    }
+}
+
+}// namespace nson

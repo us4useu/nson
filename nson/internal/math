@@ -1,0 +1,28 @@
+// SPDX-FileCopyrightText: Copyright (c) 2026 us4us Ltd.
+// SPDX-License-Identifier: MIT
+
+#pragma once
+
+#include <concepts>
+#include <cstddef>
+#include <type_traits>
+
+namespace nson::internal::math {
+
+template<typename T, T base, std::size_t Exp, bool FirstInvocation = true>
+    requires(std::is_integral_v<T>)
+struct pow_impl {
+    static constexpr T value = base * pow_impl<T, base, Exp - 1, false>::value;
+};
+
+template<typename T, T base>
+struct pow_impl<T, base, 0, false> {
+    static constexpr T value = base;
+};
+
+template<typename T, T base>
+struct pow_impl<T, base, 0, true> {
+    static constexpr T value = static_cast<T>(1);
+};
+
+};// namespace nson::internal::math

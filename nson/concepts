@@ -25,10 +25,11 @@ template<typename T>
 concept supports_to_string_directly = internal::string::supports_to_string<T>;
 
 /**
- * Concept to check if the type is supported by one of the specializations of nson::to_string.
+ * Concept to check if the type is supported by one of the specializations of nson::to_string,
+ * either directly or via nson::join.
  */
 template<typename T>
-concept supports_to_string = internal::string::supports_to_string<T>;
+concept supports_to_string = supports_to_string_directly<T> || supports_join<T>;
 
 /**
  * Concept to check if a type supports ostream << operator.

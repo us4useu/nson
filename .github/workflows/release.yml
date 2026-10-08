@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install gcc-13
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-13 g++-13
+
+      - name: Install Conan
+        run: |
+          pip install --upgrade "conan>=2.0,<3.0"
+
+      - name: Configure Conan profile
+        env:
+          CC: gcc-13
+          CXX: g++-13
+        run: |
+          conan profile detect --force
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Verify tag matches recipe
+        run: |
+          declared=$(python -c "import yaml; print(next(iter(yaml.safe_load(open('recipes/nson/config.yml'))['versions'])))")
+          if [ "$declared" != "${{ steps.version.outputs.version }}" ]; then
+            echo "::error::Tag v${{ steps.version.outputs.version }} does not match recipe version $declared"
+            exit 1
+          fi
+
+      - name: Validate recipe (conan create + test_package)
+        env:
+          CC: gcc-13
+          CXX: g++-13
+        run: |
+          conan create recipes/nson/all \
+            --version=${{ steps.version.outputs.version }} \
+            -s compiler.cppstd=23 \
+            --build=missing
+
+      - name: Package headers archive
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          staging="nson-${version}"
+          mkdir -p "$staging"
+          cp -r nson "$staging/"
+          cp LICENSE README.md "$staging/"
+          zip -r "nson-${version}.zip" "$staging"
+          sha256sum "nson-${version}.zip" > "nson-${version}.zip.sha256"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            nson-*.zip
+            nson-*.zip.sha256
+          generate_release_notes: true

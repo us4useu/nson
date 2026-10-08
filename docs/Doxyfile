@@ -6,9 +6,15 @@ PROJECT_BRIEF          = "us4us C++ standard library extension"
 
 # Input
 INPUT                  = ../nson
-FILE_PATTERNS          = *.h
+# Public headers are extensionless (std-library style), so match every file under
+# INPUT and tell Doxygen to parse extensionless files as C++.
+FILE_PATTERNS          = *
+EXTENSION_MAPPING      = no_extension=C++
 RECURSIVE              = YES
 EXCLUDE_PATTERNS       = */internal/*
+# type_name_s is the implementation-detail dispatcher behind nson::reflection::type_name;
+# its Compiler-enum partial specializations also confuse the parser.
+EXCLUDE_SYMBOLS        = nson::reflection::type_name_s
 
 # Extraction
 EXTRACT_ALL            = YES

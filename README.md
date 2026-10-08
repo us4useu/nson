@@ -29,8 +29,8 @@ nson/0.1.0
 Then include the headers from the `nson/` directory:
 
 ```cpp
-#include <nson/string.h>
-#include <nson/concepts.h>
+#include <nson/string>
+#include <nson/concepts>
 
 #include <vector>
 #include <iostream>

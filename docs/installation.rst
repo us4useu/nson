@@ -28,8 +28,8 @@ Then include the headers via the ``nson/`` prefix:
 
 .. code-block:: cpp
 
-   #include <nson/string.h>
-   #include <nson/concepts.h>
+   #include <nson/string>
+   #include <nson/concepts>
 
    #include <iostream>
    #include <vector>

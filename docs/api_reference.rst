@@ -15,7 +15,7 @@ Every header is extensionless and included as ``#include <nson/name>``.
    * - Header
      - Contents
    * - ``nson/bits``
-     - Bit manipulation helpers (``nson::bits``): bitmask construction and alignment.
+     - Bit manipulation helpers (``nson::bits``).
    * - ``nson/compiler``
      - Compile-time detection of the compiler in use (``nson::COMPILER``).
    * - ``nson/concepts``

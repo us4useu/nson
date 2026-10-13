@@ -10,6 +10,7 @@ namespace nson::bits {
 
 /** 
  * Creates a bitmask for a given range of bits.
+
  * @param upper The upper bit position (inclusive).
  * @param lower The lower bit position (inclusive).
  * @return A bitmask with the specified range set.

@@ -23,8 +23,8 @@
 enum class Fruit : std::uint8_t { APPLE };
 
 // nson/bits
-static_assert(nson::bits::make_mask<std::uint32_t>(3, 0) == 0xFu);
-static_assert(nson::bits::align_up<std::uint32_t>(5, 4) == 8u);
+static_assert(nson::bits::makeMask<std::uint32_t>(3, 0) == 0xFu);
+static_assert(nson::bits::alignUp<std::uint32_t>(5, 4) == 8u);
 
 // nson/math
 // NOTE: nson::pow is currently off by one power for exp >= 1 (pow<2, 3> yields 16),

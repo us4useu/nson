@@ -9,16 +9,16 @@
 namespace nson::void_safe {
 
 /**
- * UnaryTypeTrait to get the reference of type T, if possible, or nullptr_t as a fallback.
+ * UnaryTypeTrait to get the reference of type T, if possible, or std::nullptr_t as a fallback.
  */
 template<typename T> struct reference {
     using type = T &;
 };
 template<> struct reference<void> {
-    using type = nullptr_t;
+    using type = std::nullptr_t;
 };
-template<> struct reference<nullptr_t> {
-    using type = nullptr_t;
+template<> struct reference<std::nullptr_t> {
+    using type = std::nullptr_t;
 };
 template<typename T> using reference_t = typename reference<T>::type;
 
@@ -31,7 +31,7 @@ template<typename T> struct safe_sizeof {
 template<> struct safe_sizeof<void> {
     static constexpr std::size_t value = 0;
 };
-template<> struct safe_sizeof<nullptr_t> {
+template<> struct safe_sizeof<std::nullptr_t> {
     static constexpr std::size_t value = 0;
 };
 template<typename T> constexpr std::size_t safe_sizeof_v = safe_sizeof<T>::value;

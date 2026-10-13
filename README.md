@@ -13,54 +13,10 @@ The name "nson" is an abbreviation of "nia sono", which means "our sound" in [Es
 All headers live in the `nson` namespace and are packaged under the Conan
 recipe name `nson`.
 
-You can find documentation here: [stable](https://us4useu.github.io/nson/stable), [dev](https://us4useu.github.io/nson/dev).
-
 # Quick start
 
-
-
-Nson is distributed as a header-only library through the
-[Conan](https://conan.io/) package manager.
-
-Add `nson/0.1.0` to the `[requires]` section of your `conanfile.txt` (or the
-`requires` attribute of your `conanfile.py`):
-
-```
-[requires]
-nson/0.1.0
-```
-
-Then include the headers from the `nson/` directory:
-
-```cpp
-#include <nson/string>
-#include <nson/concepts>
-
-#include <vector>
-#include <iostream>
-
-int main() {
-    std::vector<int> values{1, 2, 3};
-    std::cout << nson::join(values, ", ") << std::endl;   // "1, 2, 3"
-    std::cout << nson::to_string(values) << std::endl;    // "1, 2, 3"
-    std::cout << nson::trim("   hello   ") << std::endl;  // "hello"
-}
-```
-
-Nson requires a C++23-capable compiler.
-
-# Structure
-
-The public API is exposed through the following components:
-
-- `concepts` — Concepts used to constrain templates in the rest of the
-  library.
-- `string` — String utilities, incliuding a generic `to_string` that works on both
-  scalars and ranges, `join` for combining a range of values into a single
-  string with a separator, etc.
-
-Headers under `nson/internal/` are implementation details and are not part
-of the public API.
+You can find documentation here: [stable](https://us4useu.github.io/nson/stable), [dev](https://us4useu.github.io/nson/dev). Follow
+installation instructions presented there. 
 
 # Contributing
 

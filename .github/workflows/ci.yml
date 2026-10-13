@@ -11,6 +11,33 @@ on:
       - 'v*.*.x'
 
 jobs:
+  naming:
+    name: clang-tidy naming conventions
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install clang-tidy and libstdc++
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-tidy-18 g++-13
+
+      # Headers are extensionless, so -x c++ tells clang how to parse them.
+      # Each public header is checked standalone, which also proves it is
+      # self-contained. .clang-tidy supplies the checks and the header filter.
+      - name: Check function naming
+        run: |
+          status=0
+          for header in nson/*; do
+            [ -f "$header" ] || continue
+            echo "::group::$header"
+            clang-tidy-18 --quiet \
+              --warnings-as-errors='readability-identifier-naming' \
+              "$header" -- -std=c++23 -x c++ -I. || status=1
+            echo "::endgroup::"
+          done
+          exit $status
+
   conan-create:
     name: conan create (${{ matrix.os }}, gcc-${{ matrix.gcc }})
     runs-on: ${{ matrix.os }}

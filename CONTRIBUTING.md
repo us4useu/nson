@@ -59,6 +59,15 @@ The generated HTML lands in `docs/_build/html/`. Open
   `std::formattable`, and other C++20/23 features.
 - Public APIs live in the `nson` namespace. Implementation helpers live in
   `nson::internal::<subsystem>`.
+- Functions and methods use `camelCase` (e.g. `makeMask`, `alignUp`). This is
+  enforced by `.clang-tidy` in CI, which fails the build on a violation; run it
+  locally with:
+  ```
+  clang-tidy nson/<header> -- -std=c++23 -x c++ -I.
+  ```
+  The `to_string` overloads are the one deliberate exception, marked with
+  `NOLINT`, because they mimic `std::to_string`. Concepts, type traits, and
+  variable templates keep `snake_case`, matching the standard library.
 - Header guards use the `NSON_<PATH>_H` form (e.g. `NSON_STRING_H`).
 - Every source file starts with the SPDX header:
   ```

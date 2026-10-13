@@ -1,0 +1,12 @@
+# Naming conventions for nson. Functions use camelCase; other identifier kinds
+# are intentionally left unchecked, so only function names are validated here.
+Checks: >
+  -*,
+  readability-identifier-naming
+
+CheckOptions:
+  readability-identifier-naming.FunctionCase: camelBack
+  readability-identifier-naming.MethodCase: camelBack
+
+# Only diagnose nson's own headers, never the standard library.
+HeaderFilterRegex: '(^|/)nson/[^/]*$|(^|/)nson/internal/[^/]*$'

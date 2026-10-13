@@ -28,7 +28,8 @@ namespace nson {
  */
 template<typename T>
     requires supports_to_string<T>
-inline std::string to_string(const T &value) {
+// Mirrors std::to_string; see the note in nson/internal/string.
+inline std::string to_string(const T &value) {// NOLINT(readability-identifier-naming)
     if constexpr (supports_to_string_directly<T>) {
         return internal::string::to_string(value);
     } else if constexpr (supports_join<T>) {

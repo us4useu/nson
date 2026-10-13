@@ -57,6 +57,11 @@ concept streamable = requires(std::ostream &os, const T &t) {
     { os << t } -> std::same_as<std::ostream &>;
 };
 
+// The to_string overloads below deliberately keep snake_case: they mirror
+// std::to_string, of which they are effectively specializations. This is the
+// one documented exception to the camelCase rule enforced by .clang-tidy.
+// NOLINTBEGIN(readability-identifier-naming)
+
 /**
  * Converts the given optional value to a string.
  * If the value has a value, it is converted to a string using std::to_string.
@@ -143,6 +148,8 @@ template<typename T>
 inline std::string to_string(const T &value) {
     return std::to_string(value);
 }
+
+// NOLINTEND(readability-identifier-naming)
 
 /**
  * Concept to check if the type is supported by one of the specializations of nson::to_string.

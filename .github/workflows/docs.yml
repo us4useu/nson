@@ -53,12 +53,24 @@ jobs:
           if [[ "$ref" =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "destination=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
             echo "also_stable=true" >> "$GITHUB_OUTPUT"
+            echo "also_dev=false" >> "$GITHUB_OUTPUT"
           elif [[ "$ref" =~ ^refs/heads/v[0-9]+\.[0-9]+\.x$ ]]; then
             echo "destination=${GITHUB_REF_NAME}-dev" >> "$GITHUB_OUTPUT"
             echo "also_stable=false" >> "$GITHUB_OUTPUT"
+            # dev/ tracks the highest-numbered v*.*.x branch, so it only moves
+            # when the branch being built is that one.
+            latest=$(git ls-remote --heads origin 'refs/heads/v*.*.x' \
+                       | sed 's|.*refs/heads/||' | sort -V | tail -n1)
+            echo "highest release branch: ${latest:-<none>} (building ${GITHUB_REF_NAME})"
+            if [ "$latest" = "$GITHUB_REF_NAME" ]; then
+              echo "also_dev=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "also_dev=false" >> "$GITHUB_OUTPUT"
+            fi
           else
             echo "destination=" >> "$GITHUB_OUTPUT"
             echo "also_stable=false" >> "$GITHUB_OUTPUT"
+            echo "also_dev=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Deploy to ${{ steps.dest.outputs.destination }}/
@@ -84,6 +96,19 @@ jobs:
           user_name: 'github-actions[bot]'
           user_email: '41898282+github-actions[bot]@users.noreply.github.com'
           commit_message: 'docs: refresh stable/ from ${{ github.ref_name }}'
+
+      # dev/ mirrors the HEAD of the highest v*.*.x branch.
+      - name: Refresh dev/
+        if: github.event_name != 'pull_request' && steps.dest.outputs.also_dev == 'true'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/_build/html
+          destination_dir: dev
+          keep_files: true
+          user_name: 'github-actions[bot]'
+          user_email: '41898282+github-actions[bot]@users.noreply.github.com'
+          commit_message: 'docs: refresh dev/ from ${{ github.ref_name }}'
 
       # Root landing page: bare `https://<org>.github.io/nson/` redirects to stable/.
       - name: Prepare root redirect

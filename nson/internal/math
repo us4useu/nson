@@ -9,19 +9,19 @@
 
 namespace nson::internal::math {
 
-template<typename T, T base, std::size_t Exp, bool FirstInvocation = true>
+template<typename T, T Base, std::size_t Exp, bool FirstInvocation = true>
     requires(std::is_integral_v<T>)
 struct pow_impl {
-    static constexpr T value = base * pow_impl<T, base, Exp - 1, false>::value;
+    static constexpr T value = Base * pow_impl<T, Base, Exp - 1, false>::value;
 };
 
-template<typename T, T base>
-struct pow_impl<T, base, 0, false> {
-    static constexpr T value = base;
+template<typename T, T Base>
+struct pow_impl<T, Base, 0, false> {
+    static constexpr T value = Base;
 };
 
-template<typename T, T base>
-struct pow_impl<T, base, 0, true> {
+template<typename T, T Base>
+struct pow_impl<T, Base, 0, true> {
     static constexpr T value = static_cast<T>(1);
 };
 

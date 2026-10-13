@@ -14,18 +14,20 @@ using namespace nson::internal::math;
 namespace nson {
 
 /**
- * A constant expression that computes the power of a base raised to an exponent at compile time.
+ * A constant expression that computes the power of a Base raised to an exponent at compile time.
  * Useful, as:
  * 1. std::pow isn't constexpr until C++26;
  * 2. std::pow provides no integral variant.
  *
- * @tparam base The base value.
- * @tparam exp The exponent value.
+ * @tparam Base The base value.
+ * @tparam Exp The exponent value.
  * @return The result of base raised to the power of exp.
  */
-template<auto base, std::size_t exp>
-    requires(std::is_integral_v<decltype(base)>)
-constexpr auto pow = pow_impl<decltype(base), base, exp>::value;
+// std-style variable template, so not UPPER_CASE like other constants.
+template<auto Base, std::size_t Exp>
+    requires(std::is_integral_v<decltype(Base)>)
+constexpr auto pow =// NOLINT(readability-identifier-naming)
+        pow_impl<decltype(Base), Base, Exp>::value;
 
 /**
  * Computes the absolute value of a number at compile time.

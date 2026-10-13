@@ -34,6 +34,7 @@ template<> struct safe_sizeof<void> {
 template<> struct safe_sizeof<std::nullptr_t> {
     static constexpr std::size_t value = 0;
 };
+// NOLINTNEXTLINE(readability-identifier-naming)
 template<typename T> constexpr std::size_t safe_sizeof_v = safe_sizeof<T>::value;
 
 };// namespace nson::void_safe

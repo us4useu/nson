@@ -22,33 +22,34 @@ template<typename T, Compiler C = nson::COMPILER> struct type_name_s {
 template<typename T> struct type_name_s<T, Compiler::CLANG> {
     constexpr static std::string_view value() {
         constexpr std::string_view sig = __PRETTY_FUNCTION__;
-        size_t prefix_len = sig.find("[T = ") + 5;
-        size_t suffix_len = sig.length() - sig.find_last_of(', C = ') + 5;
-        return sig.substr(prefix_len, sig.length() - prefix_len - suffix_len);
+        size_t prefixLen = sig.find("[T = ") + 5;
+        size_t suffixLen = sig.length() - sig.find_last_of(', C = ') + 5;
+        return sig.substr(prefixLen, sig.length() - prefixLen - suffixLen);
     }
 };
 
 template<typename T> struct type_name_s<T, Compiler::GCC> {
     constexpr static std::string_view value() {
         constexpr std::string_view sig = __PRETTY_FUNCTION__;
-        size_t prefix_len = sig.find("with T = ") + 9;
-        size_t suffix_len = sig.length() - sig.find_last_of(', C = ') + 5;
-        return sig.substr(prefix_len, sig.length() - prefix_len - suffix_len);
+        size_t prefixLen = sig.find("with T = ") + 9;
+        size_t suffixLen = sig.length() - sig.find_last_of(', C = ') + 5;
+        return sig.substr(prefixLen, sig.length() - prefixLen - suffixLen);
     }
 };
 
 template<typename T> struct type_name_s<T, Compiler::MSVC> {
     constexpr static std::string_view value() {
         constexpr std::string_view sig = __FUNCSIG__;
-        size_t prefix_len = sig.find("type_name_s<") + 10;
-        size_t suffix_len = sig.length() - sig.find_last_of(', C = ') + 5;
-        return sig.substr(prefix_len, sig.length() - prefix_len - suffix_len);
+        size_t prefixLen = sig.find("type_name_s<") + 10;
+        size_t suffixLen = sig.length() - sig.find_last_of(', C = ') + 5;
+        return sig.substr(prefixLen, sig.length() - prefixLen - suffixLen);
     }
 };
 
 /*
  * Returns the name of the type T as a string_view. This is useful for debugging and logging purposes.
 */
+// NOLINTNEXTLINE(readability-identifier-naming)
 template<typename T> inline constexpr std::string_view type_name = type_name_s<T>::value();
 
 };// namespace nson::reflection

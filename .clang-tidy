@@ -6,11 +6,16 @@ CheckOptions:
   # Types (Classes, Structs, Enums, Typedefs, Concepts)
   readability-identifier-naming.ClassCase: CamelCase
   readability-identifier-naming.EnumCase: CamelCase
-  readability-identifier-naming.StructCase: CamelCase
+  # StructCase is intentionally unchecked:
+  # currently, it can be type trait (e.g. std::is_enum like) but also
+  # a plain data struct like struct Point{}
+  readability-identifier-naming.StructCase: aNy_CasE
   readability-identifier-naming.UnionCase: CamelCase
-  readability-identifier-naming.TypeAliasCase: CamelCase
+  # Intentionally unchecked, to handle properly both std and us4us defined types.
+  readability-identifier-naming.TypeAliasCase: aNy_CasE
   readability-identifier-naming.TypedefCase: CamelCase
-  readability-identifier-naming.ConceptCase: CamelCase
+  # Concepts mirror the standard library (std::same_as, std::formattable).
+  readability-identifier-naming.ConceptCase: lower_case
 
   # Functions and Methods
   readability-identifier-naming.FunctionCase: camelBack
@@ -30,6 +35,9 @@ CheckOptions:
   # Constants and Enum Constants
   # LLVM generally avoids ALL_CAPS for constants/enumerators to prevent macro clashes
   readability-identifier-naming.ConstantCase: UPPER_CASE
+  # Relaxing constraints here: Trait members follow std (e.g. safe_sizeof<T>::value), and constexpr.
+  readability-identifier-naming.ClassConstantCase: aNy_CasE
+  readability-identifier-naming.LocalConstantCase: aNy_CasE
   readability-identifier-naming.EnumConstantCase: UPPER_CASE
   readability-identifier-naming.ScopedEnumConstantCase: UPPER_CASE
   readability-identifier-naming.ConstantParameterCase: camelBack

@@ -73,49 +73,30 @@ jobs:
             echo "also_dev=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Deploy to ${{ steps.dest.outputs.destination }}/
+      # Everything this run publishes is staged into one directory and pushed as
+      # a single commit. The previous version ran one peaceiris step per
+      # destination, so a push rejected part-way through left gh-pages
+      # half-updated (v0.1.0/ published, stable/ and the root redirect missing).
+      - name: Assemble gh-pages payload
+        id: payload
         if: github.event_name != 'pull_request' && steps.dest.outputs.destination != ''
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs/_build/html
-          destination_dir: ${{ steps.dest.outputs.destination }}
-          keep_files: true
-          user_name: 'github-actions[bot]'
-          user_email: '41898282+github-actions[bot]@users.noreply.github.com'
-          commit_message: 'docs: publish ${{ steps.dest.outputs.destination }} (${{ github.sha }})'
-
-      - name: Refresh stable/
-        if: steps.dest.outputs.also_stable == 'true'
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs/_build/html
-          destination_dir: stable
-          keep_files: true
-          user_name: 'github-actions[bot]'
-          user_email: '41898282+github-actions[bot]@users.noreply.github.com'
-          commit_message: 'docs: refresh stable/ from ${{ github.ref_name }}'
-
-      # dev/ mirrors the HEAD of the highest v*.*.x branch.
-      - name: Refresh dev/
-        if: github.event_name != 'pull_request' && steps.dest.outputs.also_dev == 'true'
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs/_build/html
-          destination_dir: dev
-          keep_files: true
-          user_name: 'github-actions[bot]'
-          user_email: '41898282+github-actions[bot]@users.noreply.github.com'
-          commit_message: 'docs: refresh dev/ from ${{ github.ref_name }}'
-
-      # Root landing page: bare `https://<org>.github.io/nson/` redirects to stable/.
-      - name: Prepare root redirect
-        if: steps.dest.outputs.also_stable == 'true'
         run: |
-          mkdir -p root-redirect
-          cat > root-redirect/index.html <<'EOF'
+          html=docs/_build/html
+          out=gh-pages-payload
+          published=""
+
+          publish_into() {
+            mkdir -p "$out/$1"
+            cp -R "$html/." "$out/$1/"
+            published="${published:+$published, }$1/"
+          }
+
+          publish_into '${{ steps.dest.outputs.destination }}'
+
+          if [ '${{ steps.dest.outputs.also_stable }}' = true ]; then
+            publish_into stable
+            # Root landing page: bare https://<org>.github.io/nson/ -> stable/.
+            cat > "$out/index.html" <<'EOF'
           <!DOCTYPE html>
           <meta charset="utf-8">
           <title>nson documentation</title>
@@ -123,14 +104,24 @@ jobs:
           <link rel="canonical" href="stable/">
           <p>Redirecting to <a href="stable/">stable/</a>&hellip;</p>
           EOF
+            published="$published, index.html"
+          fi
 
-      - name: Publish root redirect
-        if: steps.dest.outputs.also_stable == 'true'
+          # dev/ mirrors the HEAD of the highest v*.*.x branch.
+          if [ '${{ steps.dest.outputs.also_dev }}' = true ]; then
+            publish_into dev
+          fi
+
+          echo "publishing: $published"
+          echo "published=$published" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy to gh-pages
+        if: github.event_name != 'pull_request' && steps.dest.outputs.destination != ''
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./root-redirect
+          publish_dir: ./gh-pages-payload
           keep_files: true
           user_name: 'github-actions[bot]'
           user_email: '41898282+github-actions[bot]@users.noreply.github.com'
-          commit_message: 'docs: refresh root redirect'
+          commit_message: 'docs: publish ${{ steps.payload.outputs.published }} from ${{ github.ref_name }}'

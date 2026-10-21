@@ -1,0 +1,863 @@
+#pragma once
+
+#include <algorithm>
+#include <deque>
+#include <format>
+#include <functional>
+#include <iostream>
+#include <map>
+#include <memory>
+#include <optional>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+
+#include <nson/internal/xterm>
+
+namespace nson::tui {
+
+// Counts UTF-8 codepoints (visual width for standard/box-drawing chars)
+inline std::size_t visualWidth(std::string_view str) {
+    std::size_t width = 0;
+    for (unsigned char c : str) {
+        if ((c & 0xC0) != 0x80) {
+            ++width;
+        }
+    }
+    return width;
+}
+
+// Splits a UTF-8 string into individual codepoint views for safe horizontal placement
+inline std::vector<std::string_view> splitUtf8Codepoints(std::string_view str) {
+    std::vector<std::string_view> codepoints;
+    std::size_t i = 0;
+    while (i < str.size()) {
+        std::size_t len = 1;
+        unsigned char c = static_cast<unsigned char>(str[i]);
+        if ((c & 0x80) == 0x00) {
+            len = 1;
+        } else if ((c & 0xE0) == 0xC0) {
+            len = 2;
+        } else if ((c & 0xF0) == 0xE0) {
+            len = 3;
+        } else if ((c & 0xF8) == 0xF0) {
+            len = 4;
+        }
+        len = std::min(len, str.size() - i);
+        codepoints.push_back(str.substr(i, len));
+        i += len;
+    }
+    return codepoints;
+}
+
+// Repeats a potentially multi-byte UTF-8 string `times` times
+inline std::string repeatStr(std::string_view str, std::size_t times) {
+    std::string result;
+    result.reserve(str.size() * times);
+    for (std::size_t i = 0; i < times; ++i) {
+        result.append(str);
+    }
+    return result;
+}
+
+class Component {
+public:
+    virtual ~Component() = default;
+
+    virtual std::vector<std::string> render(std::size_t flexWidth = 0) const = 0;
+
+    const std::vector<std::string> &renderMaybeCached(std::size_t flexWidth = 0) const {
+        if (!isVisible()) {
+            if (hasValidCache && lastVisible) {
+                cachedRender.clear();
+            }
+            lastVisible = false;
+            hasValidCache = true;
+            return cachedRender;
+        }
+
+        bool widthChanged = flexible() && (!lastFlexWidth.has_value() || *lastFlexWidth != flexWidth);
+        if (!hasValidCache || needsRedraw() || widthChanged) {
+            cachedRender = render(flexWidth);
+            lastFlexWidth = flexWidth;
+            lastVisible = true;
+            hasValidCache = true;
+            dirty = false;
+            onRendered();
+        }
+        return cachedRender;
+    }
+
+    std::string renderFlat() const {
+        std::string result;
+        for (const auto &line : renderMaybeCached()) {
+            result += line + "\n";
+        }
+        return result;
+    }
+
+    std::size_t width() const {
+        std::size_t maxWidth = 0;
+        for (const auto &line : renderMaybeCached()) {
+            maxWidth = std::max(maxWidth, visualWidth(line));
+        }
+        return maxWidth;
+    }
+
+    virtual std::size_t minWidth() const { return 0; }
+
+    std::size_t height() const { return renderMaybeCached().size(); }
+
+    virtual bool needsRedraw() const { return !hasValidCache || dirty || (isVisible() != lastVisible); }
+
+    virtual bool flexible() const { return false; }
+
+    bool isVisible() const { return boundVisible ? *boundVisible : visible; }
+
+    void setVisible(bool v) {
+        if (visible != v) {
+            visible = v;
+            invalidate();
+        }
+    }
+
+    template<typename Self> Self &&bindVisible(this Self &&self, const bool &flag) {
+        self.boundVisible = &flag;
+        self.lastVisible = flag;
+        return std::forward<Self>(self);
+    }
+
+    void invalidate() const {
+        dirty = true;
+        hasValidCache = false;
+    }
+
+    template<typename Self> auto shared(this Self &&self) {
+        using Derived = std::remove_cvref_t<Self>;
+        return std::make_shared<Derived>(std::forward<Self>(self));
+    }
+
+protected:
+    virtual void onRendered() const {}
+
+    mutable std::vector<std::string> cachedRender;
+    mutable std::optional<std::size_t> lastFlexWidth;
+    mutable bool hasValidCache = false;
+    mutable bool dirty = true;
+    mutable bool lastVisible = true;
+
+private:
+    bool visible = true;
+    const bool *boundVisible = nullptr;
+};
+
+class Text : public Component {
+public:
+    explicit Text(std::string text) : text(text) {}
+
+    explicit Text(std::reference_wrapper<const std::string> bound) : text(bound.get()), boundText(&bound.get()) {}
+
+    template<typename... Args>
+        requires(sizeof...(Args) > 0)
+    explicit Text(std::format_string<Args...> fmt, Args &&...args)
+        : text(std::format(fmt, std::forward<Args>(args)...)) {}
+
+    ~Text() override = default;
+
+    void setText(std::string newText) {
+        if (text != newText) {
+            text = newText;
+            invalidate();
+        }
+    }
+
+    std::size_t minWidth() const override { return isVisible() ? visualWidth(currentText()) : 0; }
+
+    std::vector<std::string> render(std::size_t) const override { return {currentText()}; }
+
+    bool needsRedraw() const override { return Component::needsRedraw() || (boundText && *boundText != text); }
+
+protected:
+    void onRendered() const override {
+        if (boundText) {
+            text = *boundText;
+        }
+    }
+
+private:
+    const std::string &currentText() const { return boundText ? *boundText : text; }
+
+    mutable std::string text;
+    const std::string *boundText = nullptr;
+};
+
+enum class FlexAlignment { LEFT, RIGHT, CENTER };
+
+class FlexText : public Component {
+public:
+    explicit FlexText(std::string text, FlexAlignment alignment = FlexAlignment::LEFT, bool padSides = true,
+                      std::size_t fixedMinWidth = 0)
+        : text(text), alignment(alignment), padSides(padSides), fixedMinWidth(fixedMinWidth) {}
+
+    explicit FlexText(std::reference_wrapper<const std::string> bound, FlexAlignment alignment = FlexAlignment::LEFT,
+                      bool padSides = true, std::size_t fixedMinWidth = 0)
+        : text(bound.get()), boundText(&bound.get()), alignment(alignment), padSides(padSides),
+          fixedMinWidth(fixedMinWidth) {}
+
+    template<typename... Args>
+        requires(sizeof...(Args) > 0)
+    explicit FlexText(FlexAlignment alignment, std::format_string<Args...> fmt, Args &&...args)
+        : text(std::format(fmt, std::forward<Args>(args)...)), alignment(alignment) {}
+
+    ~FlexText() override = default;
+
+    void setText(std::string newText) {
+        if (text != newText) {
+            text = newText;
+            invalidate();
+        }
+    }
+
+    bool flexible() const override { return true; }
+
+    std::size_t minWidth() const override {
+        if (!isVisible()) {
+            return 0;
+        }
+        std::size_t sidePad = padSides ? 2 : 0;
+        if (fixedMinWidth > 0) {
+            return fixedMinWidth + sidePad;
+        }
+
+        std::size_t longestWord = 0;
+        std::istringstream iss(currentText());
+        std::string word;
+        while (iss >> word) {
+            longestWord = std::max(longestWord, visualWidth(word));
+        }
+        return longestWord + sidePad;
+    }
+
+    std::vector<std::string> render(std::size_t flexWidth) const override {
+        const std::string &raw = currentText();
+        std::size_t sidePad = padSides ? 2 : 0;
+        std::size_t minReq = minWidth();
+        std::size_t targetWidth = (flexWidth == 0) ? (visualWidth(raw) + sidePad) : std::max(flexWidth, minReq);
+        std::size_t usefulWidth = (targetWidth > sidePad) ? (targetWidth - sidePad) : visualWidth(raw);
+        if (usefulWidth == 0) {
+            usefulWidth = std::max<std::size_t>(1, visualWidth(raw));
+        }
+
+        std::vector<std::string> wrappedLines;
+        std::istringstream paragraphStream(raw);
+        std::string paragraph;
+
+        while (std::getline(paragraphStream, paragraph, '\n')) {
+            std::istringstream wordStream(paragraph);
+            std::string word;
+            std::string currentLine;
+            std::size_t currentLineWidth = 0;
+
+            while (wordStream >> word) {
+                std::size_t wordWidth = visualWidth(word);
+                if (currentLine.empty()) {
+                    currentLine = word;
+                    currentLineWidth = wordWidth;
+                } else if (currentLineWidth + 1 + wordWidth <= usefulWidth) {
+                    currentLine += " " + word;
+                    currentLineWidth += 1 + wordWidth;
+                } else {
+                    wrappedLines.push_back(alignLine(currentLine, currentLineWidth, usefulWidth));
+                    currentLine = word;
+                    currentLineWidth = wordWidth;
+                }
+            }
+
+            if (!currentLine.empty() || paragraph.empty()) {
+                wrappedLines.push_back(alignLine(currentLine, currentLineWidth, usefulWidth));
+            }
+        }
+
+        if (wrappedLines.empty()) {
+            wrappedLines.push_back(alignLine("", 0, usefulWidth));
+        }
+
+        return wrappedLines;
+    }
+
+    bool needsRedraw() const override { return Component::needsRedraw() || (boundText && *boundText != text); }
+
+protected:
+    void onRendered() const override {
+        if (boundText) {
+            text = *boundText;
+        }
+    }
+
+private:
+    const std::string &currentText() const { return boundText ? *boundText : text; }
+
+    std::string alignLine(const std::string &line, std::size_t lineVisWidth, std::size_t usefulWidth) const {
+        std::size_t padding = (usefulWidth > lineVisWidth) ? (usefulWidth - lineVisWidth) : 0;
+        std::string aligned;
+        switch (alignment) {
+        case FlexAlignment::LEFT: aligned = line + std::string(padding, ' '); break;
+        case FlexAlignment::RIGHT: aligned = std::string(padding, ' ') + line; break;
+        case FlexAlignment::CENTER:
+            aligned = std::string(padding / 2, ' ') + line + std::string((padding + 1) / 2, ' ');
+            break;
+        }
+        return padSides ? (" " + aligned + " ") : aligned;
+    }
+
+    mutable std::string text;
+    const std::string *boundText = nullptr;
+    FlexAlignment alignment = FlexAlignment::LEFT;
+    bool padSides = true;
+    std::size_t fixedMinWidth = 0;
+};
+
+struct BorderStyle {
+    std::string horizontal;
+    std::string vertical;
+    struct {
+        std::string topLeft;
+        std::string topRight;
+        std::string bottomLeft;
+        std::string bottomRight;
+    } corner;
+    struct {
+        std::string top;
+        std::string bottom;
+        std::string left;
+        std::string right;
+    } separator;
+};
+
+enum class BorderType { SIMPLE, SINGLE, DOUBLE, NONE };
+
+inline const std::map<BorderType, BorderStyle> BORDER_STYLES = {
+    {BorderType::SIMPLE, {"-", "|", {"+", "+", "+", "+"}, {"+", "+", "+", "+"}}},
+    {BorderType::SINGLE, {"─", "│", {"┌", "┐", "└", "┘"}, {"┬", "┴", "├", "┤"}}},
+    {BorderType::DOUBLE, {"═", "║", {"╔", "╗", "╚", "╝"}, {"╦", "╩", "╠", "╣"}}},
+    {BorderType::NONE, {"", "", {"", "", "", ""}, {"", "", "", ""}}}};
+
+class Border : public Component {
+public:
+    Border(std::shared_ptr<Component> child, BorderType borderType = BorderType::SINGLE)
+        : child(child), type(BORDER_STYLES.at(borderType)) {
+        if (borderType == BorderType::NONE) {
+            throw std::invalid_argument("BorderType::NONE is not supported for Border component");
+        }
+    }
+
+    ~Border() override = default;
+
+    std::size_t minWidth() const override {
+        if (!isVisible() || !child || !child->isVisible()) {
+            return 0;
+        }
+        std::size_t inner = child->flexible() ? child->minWidth() : child->width();
+        return inner + 2;
+    }
+
+    std::vector<std::string> render(std::size_t flexWidth) const override {
+        std::size_t childTargetWidth = (flexWidth > 2) ? (flexWidth - 2) : 0;
+        const auto &childLines = child->renderMaybeCached(childTargetWidth);
+        std::size_t innerWidth = 0;
+        for (const auto &line : childLines) {
+            innerWidth = std::max(innerWidth, visualWidth(line));
+        }
+
+        std::vector<std::string> result;
+        result.reserve(childLines.size() + 2);
+
+        std::string horizBar = repeatStr(type.horizontal, innerWidth);
+        result.push_back(type.corner.topLeft + horizBar + type.corner.topRight);
+
+        for (const auto &line : childLines) {
+            std::size_t pad = innerWidth - visualWidth(line);
+            result.push_back(type.vertical + line + std::string(pad, ' ') + type.vertical);
+        }
+
+        result.push_back(type.corner.bottomLeft + horizBar + type.corner.bottomRight);
+        return result;
+    }
+
+    bool needsRedraw() const override { return Component::needsRedraw() || child->needsRedraw(); }
+
+private:
+    std::shared_ptr<Component> child;
+    BorderStyle type;
+};
+
+class VBox : public Component {
+public:
+    VBox(const std::vector<std::shared_ptr<Component>> &childrenRef, BorderType border = BorderType::NONE)
+        : boundChildren(&childrenRef), type(BORDER_STYLES.at(border)), hasBorder(border != BorderType::NONE) {}
+
+    VBox(std::vector<std::shared_ptr<Component>> &&childrenOwned, BorderType border = BorderType::NONE)
+        : ownedChildren(childrenOwned), boundChildren(nullptr), type(BORDER_STYLES.at(border)),
+          hasBorder(border != BorderType::NONE) {}
+
+    ~VBox() override = default;
+
+    std::size_t minWidth() const override {
+        std::size_t maxChildWidth = 0;
+        for (const auto &child : children()) {
+            if (child && child->isVisible()) {
+                maxChildWidth = std::max(maxChildWidth, child->flexible() ? child->minWidth() : child->width());
+            }
+        }
+        return hasBorder ? (maxChildWidth + 2) : maxChildWidth;
+    }
+
+    std::vector<std::string> render(std::size_t flexWidth) const override {
+        const auto &allChildren = children();
+        std::vector<std::shared_ptr<Component>> activeChildren;
+        activeChildren.reserve(allChildren.size());
+        for (const auto &child : allChildren) {
+            if (child && child->isVisible()) {
+                activeChildren.push_back(child);
+            }
+        }
+
+        // Calculate minimum required inner width across all visible children
+        std::size_t maxWidth = (hasBorder && flexWidth > 2) ? (flexWidth - 2) : flexWidth;
+        for (const auto &child : activeChildren) {
+            if (child->flexible()) {
+                maxWidth = std::max(maxWidth, child->minWidth());
+            } else {
+                maxWidth = std::max(maxWidth, child->width());
+            }
+        }
+
+        // Render each child (using cache when clean) with target maxWidth
+        std::vector<const std::vector<std::string> *> renderedChildren(activeChildren.size(), nullptr);
+        bool widthExpanded = false;
+        for (std::size_t i = 0; i < activeChildren.size(); ++i) {
+            const auto &lines = activeChildren[i]->renderMaybeCached(maxWidth);
+            for (const auto &line : lines) {
+                if (visualWidth(line) > maxWidth) {
+                    maxWidth = visualWidth(line);
+                    widthExpanded = true;
+                }
+            }
+            renderedChildren[i] = &lines;
+        }
+
+        // If a child expanded maxWidth beyond initial estimate, re-align flexible children
+        if (widthExpanded) {
+            for (std::size_t i = 0; i < activeChildren.size(); ++i) {
+                if (activeChildren[i]->flexible()) {
+                    renderedChildren[i] = &activeChildren[i]->renderMaybeCached(maxWidth);
+                }
+            }
+        }
+
+        // Assemble final output with borders and separators
+        std::vector<std::string> finalResult;
+        std::string horizBar = hasBorder ? repeatStr(type.horizontal, maxWidth) : "";
+        std::string separatorLine = hasBorder ? (type.separator.left + horizBar + type.separator.right) : "";
+
+        if (hasBorder) {
+            finalResult.push_back(type.corner.topLeft + horizBar + type.corner.topRight);
+        }
+
+        for (std::size_t i = 0; i < renderedChildren.size(); ++i) {
+            const auto &lines = *renderedChildren[i];
+            for (const auto &line : lines) {
+                std::size_t lineVisWidth = visualWidth(line);
+                std::size_t padding = (maxWidth > lineVisWidth) ? (maxWidth - lineVisWidth) : 0;
+
+                if (hasBorder) {
+                    finalResult.push_back(type.vertical + line + std::string(padding, ' ') + type.vertical);
+                } else {
+                    finalResult.push_back(line + std::string(padding, ' '));
+                }
+            }
+
+            if (hasBorder && i + 1 < renderedChildren.size()) {
+                finalResult.push_back(separatorLine);
+            }
+        }
+
+        if (hasBorder) {
+            finalResult.push_back(type.corner.bottomLeft + horizBar + type.corner.bottomRight);
+        }
+
+        return finalResult;
+    }
+
+    bool needsRedraw() const override {
+        if (Component::needsRedraw() || currentActiveList() != lastActiveChildren) {
+            return true;
+        }
+        const auto &allChildren = children();
+        return std::any_of(allChildren.begin(), allChildren.end(),
+                           [](const auto &child) { return child && child->isVisible() && child->needsRedraw(); });
+    }
+
+protected:
+    void onRendered() const override { lastActiveChildren = currentActiveList(); }
+
+private:
+    const std::vector<std::shared_ptr<Component>> &children() const {
+        return boundChildren ? *boundChildren : ownedChildren;
+    }
+
+    std::vector<const Component *> currentActiveList() const {
+        const auto &allChildren = children();
+        std::vector<const Component *> active;
+        active.reserve(allChildren.size());
+        for (const auto &child : allChildren) {
+            if (child && child->isVisible()) {
+                active.push_back(child.get());
+            }
+        }
+        return active;
+    }
+
+    std::vector<std::shared_ptr<Component>> ownedChildren;
+    const std::vector<std::shared_ptr<Component>> *boundChildren = nullptr;
+    BorderStyle type;
+    bool hasBorder;
+    mutable std::vector<const Component *> lastActiveChildren;
+};
+
+enum TableCellAlignment { LEFT, RIGHT, CENTER };
+enum TableFlexibleColumn { NOT_FLEXIBLE, FIRST_COLUMN, LAST_COLUMN };
+
+struct TableStyle {
+    BorderType borderType;
+    bool hasSeparator;
+    TableFlexibleColumn flexibleColumn;
+    bool padSides;
+};
+
+struct TableColumn {
+    std::string header;
+    TableCellAlignment alignment;
+
+    TableColumn(const char *header, TableCellAlignment alignment = TableCellAlignment::LEFT)
+        : header(header), alignment(alignment) {}
+
+    TableColumn(std::string header, TableCellAlignment alignment = TableCellAlignment::LEFT)
+        : header(std::move(header)), alignment(alignment) {}
+};
+
+class Table : public Component {
+public:
+    Table(std::vector<TableColumn> columns, const std::vector<std::vector<std::string>> &contentRef, TableStyle style)
+        : boundContent(&contentRef), columns(columns), style(style) {}
+
+    Table(std::vector<TableColumn> columns, std::vector<std::vector<std::string>> &&contentOwned, TableStyle style)
+        : ownedContent(contentOwned), boundContent(nullptr), columns(columns), style(style) {}
+
+    ~Table() override = default;
+
+    void setContent(std::vector<std::vector<std::string>> newContent) {
+        if (rows() != newContent) {
+            ownedContent = newContent;
+            boundContent = nullptr;
+            invalidate();
+        }
+    }
+
+    std::vector<std::string> render(std::size_t flexWidth) const override {
+        if (columns.empty()) {
+            return {};
+        }
+
+        const auto &content = rows();
+        std::vector<std::size_t> columnWidths(columns.size(), 0);
+        for (std::size_t i = 0; i < columns.size(); i++) {
+            columnWidths[i] = visualWidth(columns[i].header);
+        }
+        for (const auto &row : content) {
+            for (std::size_t i = 0; i < row.size(); i++) {
+                if (i >= columnWidths.size()) {
+                    columnWidths.push_back(visualWidth(row[i]));
+                } else {
+                    columnWidths[i] = std::max(columnWidths[i], visualWidth(row[i]));
+                }
+            }
+        }
+
+        BorderStyle borderStyle = BORDER_STYLES.at(style.borderType);
+        std::string colDivider = " ";
+        std::size_t dividerWidth = 1;
+
+        if (style.flexibleColumn != TableFlexibleColumn::NOT_FLEXIBLE) {
+            std::size_t totalWidth = 0;
+            for (std::size_t w : columnWidths) {
+                totalWidth += w;
+            }
+            totalWidth += (columnWidths.size() - 1) * dividerWidth;
+            if (style.padSides) {
+                totalWidth += 2;
+            }
+
+            if (flexWidth > totalWidth) {
+                std::size_t extraSpace = flexWidth - totalWidth;
+                if (style.flexibleColumn == TableFlexibleColumn::FIRST_COLUMN) {
+                    columnWidths.front() += extraSpace;
+                } else if (style.flexibleColumn == TableFlexibleColumn::LAST_COLUMN) {
+                    columnWidths.back() += extraSpace;
+                }
+            }
+        }
+
+        auto formatRow = [&](const std::vector<std::string> &row) {
+            std::string line;
+            for (std::size_t colIndex = 0; colIndex < row.size(); colIndex++) {
+                const auto &cell = row[colIndex];
+                std::size_t cellVisWidth = visualWidth(cell);
+                std::size_t padding =
+                    (columnWidths[colIndex] > cellVisWidth) ? (columnWidths[colIndex] - cellVisWidth) : 0;
+
+                auto alignment = (colIndex < columns.size()) ? columns[colIndex].alignment : TableCellAlignment::LEFT;
+
+                switch (alignment) {
+                case TableCellAlignment::LEFT: line += cell + std::string(padding, ' '); break;
+                case TableCellAlignment::RIGHT: line += std::string(padding, ' ') + cell; break;
+                case TableCellAlignment::CENTER:
+                    line += std::string(padding / 2, ' ') + cell + std::string((padding + 1) / 2, ' ');
+                    break;
+                }
+                if (colIndex + 1 < row.size()) {
+                    line += colDivider;
+                }
+            }
+            if (style.padSides) {
+                line = " " + line + " ";
+            }
+            return line;
+        };
+
+        std::vector<std::string> result;
+
+        bool hasHeaders =
+            std::any_of(columns.begin(), columns.end(), [](const TableColumn &c) { return !c.header.empty(); });
+        if (hasHeaders) {
+            std::vector<std::string> headerCells;
+            headerCells.reserve(columns.size());
+            for (const auto &col : columns) {
+                headerCells.push_back(col.header);
+            }
+            result.push_back(formatRow(headerCells));
+        }
+
+        if (style.hasSeparator && style.borderType != BorderType::NONE) {
+            std::string separatorLine;
+            for (std::size_t colIndex = 0; colIndex < columnWidths.size(); colIndex++) {
+                separatorLine += repeatStr(borderStyle.horizontal, columnWidths[colIndex]);
+                if (colIndex + 1 < columnWidths.size()) {
+                    separatorLine += " ";
+                }
+            }
+            if (style.padSides) {
+                separatorLine = " " + separatorLine + " ";
+            }
+            result.push_back(separatorLine);
+        }
+
+        for (std::size_t rowIndex = 0; rowIndex < content.size(); rowIndex++) {
+            const auto &row = content[rowIndex];
+            if (row.size() != columnWidths.size()) {
+                throw std::runtime_error(
+                    std::format("Row {} has a different number of columns than the header", rowIndex));
+            }
+            result.push_back(formatRow(row));
+        }
+
+        return result;
+    }
+
+    bool flexible() const override { return style.flexibleColumn != TableFlexibleColumn::NOT_FLEXIBLE; }
+
+    std::size_t minWidth() const override {
+        if (columns.empty()) {
+            return 0;
+        }
+
+        const auto &content = rows();
+        std::size_t totalWidth = 0;
+        for (std::size_t i = 0; i < columns.size(); i++) {
+            std::size_t maxColumnWidth = visualWidth(columns[i].header);
+            for (const auto &row : content) {
+                if (i < row.size()) {
+                    maxColumnWidth = std::max(maxColumnWidth, visualWidth(row[i]));
+                }
+            }
+            totalWidth += maxColumnWidth;
+        }
+
+        totalWidth += columns.size() - 1;
+
+        if (style.padSides) {
+            totalWidth += 2;
+        }
+        return totalWidth;
+    }
+
+    bool needsRedraw() const override { return Component::needsRedraw() || rows() != cachedContent; }
+
+protected:
+    void onRendered() const override { cachedContent = rows(); }
+
+private:
+    const std::vector<std::vector<std::string>> &rows() const { return boundContent ? *boundContent : ownedContent; }
+
+    std::vector<std::vector<std::string>> ownedContent;
+    const std::vector<std::vector<std::string>> *boundContent = nullptr;
+    std::vector<TableColumn> columns;
+    TableStyle style;
+    mutable std::vector<std::vector<std::string>> cachedContent;
+};
+
+class FlexHBox : public Component {
+public:
+    FlexHBox(std::vector<std::pair<std::shared_ptr<Component>, FlexAlignment>> childrenWithAlignment,
+             bool padSides = true)
+        : childrenWithAlignment(childrenWithAlignment), padSides(padSides) {}
+
+    bool flexible() const override { return true; }
+
+    std::size_t minWidth() const override {
+        std::size_t totalMinWidth = 0;
+        for (const auto &[child, _] : childrenWithAlignment) {
+            if (child && child->isVisible()) {
+                totalMinWidth += child->minWidth();
+            }
+        }
+        if (padSides) {
+            totalMinWidth += 2;
+        }
+        return totalMinWidth;
+    }
+
+    std::vector<std::string> render(std::size_t flexWidth) const override {
+        std::size_t totalMinWidth = minWidth();
+        std::size_t targetWidth = std::max(flexWidth, totalMinWidth);
+        if (flexWidth != 0 && flexWidth < totalMinWidth) {
+            throw std::runtime_error("Not enough width to render FlexHBox");
+        }
+
+        std::size_t usefulWidth = targetWidth;
+        if (padSides && usefulWidth >= 2) {
+            usefulWidth -= 2;
+        }
+
+        std::vector<std::string> cells(usefulWidth, " ");
+
+        for (const auto &[child, alignment] : childrenWithAlignment) {
+            if (!child || !child->isVisible()) {
+                continue;
+            }
+            const auto &renderedChild = child->renderMaybeCached();
+            if (renderedChild.empty()) {
+                continue;
+            }
+            if (renderedChild.size() > 1) {
+                throw std::runtime_error("FlexHBox only supports single-line children");
+            }
+
+            auto codepoints = splitUtf8Codepoints(renderedChild[0]);
+            std::size_t childWidth = codepoints.size();
+            std::size_t position = 0;
+            switch (alignment) {
+            case FlexAlignment::LEFT: position = 0; break;
+            case FlexAlignment::RIGHT: position = (usefulWidth >= childWidth) ? (usefulWidth - childWidth) : 0; break;
+            case FlexAlignment::CENTER:
+                position = (usefulWidth >= childWidth) ? ((usefulWidth - childWidth) / 2) : 0;
+                break;
+            }
+
+            for (std::size_t k = 0; k < childWidth && (position + k) < usefulWidth; ++k) {
+                cells[position + k] = std::string(codepoints[k]);
+            }
+        }
+
+        std::string content;
+        content.reserve(usefulWidth + 2);
+        if (padSides) {
+            content.push_back(' ');
+        }
+        for (const auto &cell : cells) {
+            content.append(cell);
+        }
+        if (padSides) {
+            content.push_back(' ');
+        }
+
+        return {content};
+    }
+
+    bool needsRedraw() const override {
+        return Component::needsRedraw()
+            || std::any_of(childrenWithAlignment.begin(), childrenWithAlignment.end(), [](const auto &pair) {
+                   return pair.first && pair.first->isVisible() && pair.first->needsRedraw();
+               });
+    }
+
+private:
+    std::vector<std::pair<std::shared_ptr<Component>, FlexAlignment>> childrenWithAlignment;
+    bool padSides;
+};
+
+class ScreenRenderer {
+public:
+    ScreenRenderer() = default;
+
+    void render(const std::shared_ptr<const Component> &screenContentProvider) {
+        if (!screenContentProvider || !screenContentProvider->needsRedraw()) {
+            return;
+        }
+
+        const auto &lines = screenContentProvider->renderMaybeCached();
+        if (lines == lastRenderedLines) {
+            return;
+        }
+
+        std::string outBuffer;
+        if (lastRenderedLines.empty()) {
+            // Cursor position = 1,1; erase below.
+            outBuffer += xterm::cursor::home();
+            outBuffer += xterm::erase::below();
+            for (const auto &line : lines) {
+                // Erase to the right (clean stale content)
+                outBuffer += line;
+                outBuffer += xterm::erase::right();
+                outBuffer += "\n";
+            }
+        } else {
+            for (std::size_t i = 0; i < lines.size(); ++i) {
+                if (i >= lastRenderedLines.size() || lines[i] != lastRenderedLines[i]) {
+                    // Print the next line, clearing stale content to the right (if any)
+                    outBuffer += xterm::cursor::moveTo(i + 1, 1);
+                    outBuffer += lines[i];
+                    outBuffer += xterm::erase::right();
+                }
+            }
+            if (lines.size() < lastRenderedLines.size()) {
+                // Move cursor to line after last rendered line; erase below (clean stale content)
+                outBuffer += xterm::cursor::moveTo(lines.size() + 1, 1);
+                outBuffer += xterm::erase::below();
+            }
+            // Move the cursor out of the way
+            outBuffer += xterm::cursor::moveTo(lines.size() + 1, 1);
+        }
+
+        std::cout << outBuffer << std::flush;
+        lastRenderedLines = lines;
+    }
+
+private:
+    std::vector<std::string> lastRenderedLines;
+};
+
+}// namespace nson::tui

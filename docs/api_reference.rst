@@ -28,6 +28,8 @@ Every header is extensionless and included as ``#include <nson/name>``.
      - Compile-time type names (``nson::reflection::type_name``).
    * - ``nson/string``
      - String conversion and formatting: ``to_string``, ``join``, ``trim``.
+   * - ``nson/tui``
+     - A data-driven terminal user interface (TUI) library.
    * - ``nson/type_traits``
      - Assorted type traits, such as ``safe_underlying_type``.
    * - ``nson/void_safe``

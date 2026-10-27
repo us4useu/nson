@@ -48,3 +48,6 @@ breathe_default_members = ("members",)
 # Public headers are extensionless, so there is no extension to key off; match them
 # by path instead. (Unmapped files fall back to the C++ default regardless.)
 breathe_domain_by_file_pattern = {"*/nson/*": "cpp"}
+
+# -- C++ -------------------------------------------------------------------
+cpp_id_attributes = ["this"]

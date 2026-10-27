@@ -35,6 +35,8 @@ XML_PROGRAMLISTING     = NO
 ENABLE_PREPROCESSING   = YES
 MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = NO
+PREDEFINED = __attribute__((x))= \
+             "DOXYGEN=1"
 
 # Concepts / C++20 support
 BUILTIN_STL_SUPPORT    = YES

@@ -92,6 +92,9 @@ public:
      */
     constexpr bool empty() const noexcept { return buffer[0] == '\0'; }
 
+    // c_str() is a common method in string-like types; keep the name just so it's easier to remember
+    //NOLINTBEGIN(readability-identifier-naming)
+    
     /**
      * Returns a pointer to the internal null-terminated character array.
      * @return A pointer to the internal character array.
@@ -103,6 +106,8 @@ public:
      * @return A pointer to the internal character array.
      */
     constexpr char *c_str() noexcept { return buffer; }
+
+    //NOLINTEND(readability-identifier-naming)
 
     /**
      * Converts the CharArray to a different string-compatible type (e.g., std::string, std::string_view).

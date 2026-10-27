@@ -94,7 +94,9 @@ public:
      * @param val The value to stream.
      * @return A reference to the proxy for chaining.
      */
-    template<typename T> auto &&operator<<(this auto &&self, const T &val) {
+    template<typename T>
+        requires(!std::convertible_to<T, std::ostream &(*) (std::ostream &)>)
+    auto &&operator<<(this auto &&self, const T &val) {
         self.buffer << val;
         return std::forward<decltype(self)>(self);
     }

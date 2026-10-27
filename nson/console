@@ -15,12 +15,15 @@
 
 namespace nson {
 
+// This is a 1:1 replacement for std::cout; keep that same name for ease of use.
+//NOLINTBEGIN(readability-identifier-naming)
 /**
  * Proxy of std::cout that provides a consistent interface for writing UTF-8 output to the console across platforms.
  * It handles the necessary platform-specific setup for UTF-8 output, especially on Windows.
  * This is the only way that RichConsole should be used; do not use it directly.
  */
 inline constexpr console::internal::RichConsole cout{};
+//NOLINTEND(readability-identifier-naming)
 
 namespace xterm {
 namespace cursor {

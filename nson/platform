@@ -1,0 +1,49 @@
+// SPDX-FileCopyrightText: Copyright (c) 2026 us4us Ltd.
+// SPDX-License-Identifier: MIT
+
+#pragma once
+
+namespace nson {
+
+/**
+ * An enumeration of the supported platforms.
+ */
+enum class Platform { WINDOWS, LINUX, OTHER };
+
+#ifdef DOXYGEN
+
+/**
+ * A static, constexpr variable that holds the current platform
+ */
+constexpr Platform PLATFORM = Platform::OTHER;
+#endif
+
+
+#ifdef _WIN32
+constexpr Platform PLATFORM = Platform::WINDOWS;
+#define __nson_is_platform_windows 1
+#define __nson_is_platform_linux 0
+#else
+#ifdef __linux__
+constexpr Platform PLATFORM = Platform::LINUX;
+#define __nson_is_platform_linux 1
+#define __nson_is_platform_windows 0
+#else
+constexpr Platform PLATFORM = Platform::OTHER;
+#define __nson_is_platform_windows 0
+#define __nson_is_platform_linux 0
+#endif
+#endif
+
+/**
+ * A static, constexpr variable that indicates whether the current platform is Windows.
+ */
+constexpr bool IS_WINDOWS = (PLATFORM == Platform::WINDOWS);
+
+/**
+ * A static, constexpr variable that indicates whether the current platform is Linux.
+ */
+constexpr bool IS_LINUX = (PLATFORM == Platform::LINUX);
+
+
+};// namespace nson

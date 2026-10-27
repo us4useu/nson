@@ -3,6 +3,10 @@
 
 #pragma once
 
+#include <concepts>
+
+#include <nson/platform>
+
 // This file will be almost exclusively macros;
 // this is by design and an exception to the general rule of avoiding macros in nson
 
@@ -26,9 +30,32 @@
 // constexpr versions of the above macros
 namespace nson::features {
 
+namespace internal {
+template<auto Platform> constexpr inline bool RELIABLE_UTF8_CONSOLE = true;
+
+template<>
+constexpr inline bool RELIABLE_UTF8_CONSOLE<nson::Platform::WINDOWS> = sizeof("\u00F3") == 3
+    && static_cast<unsigned char>("\u00F3"[0]) == 0xC3 && static_cast<unsigned char>("\u00F3"[1]) == 0xB3;
+
+};// namespace internal
+
 /* 
  * A flag to check whether the current compiler environment has working C++ exceptions enabled.
  * The standard for "working exceptions" is whether the compiler won't die when presented with a `throw`
  */
 constexpr bool WORKING_EXCEPTIONS = __nson_has_working_exceptions;
-}// namespace nson::features
+
+/*
+ * A flag to check whether the current platform has a reliable UTF-8 console.
+ * This is primarily an issue on Windows, where the default console code page
+ * may not support UTF-8 output.
+ * 
+ * On Windows, we need to check if characters are compiled correctly, which is a good indicator of whether the console 
+ * will handle UTF-8 correctly (however, it is not telltale as exec charset doesn't necessarily match compile charset).
+ * 
+ * The exact check is whether the UTF-8 encoding of U+00F3 ('ó') is 0xC3 0xB3 (length 2 + 1 null terminator = 3).
+ * In single-byte Windows code pages (e.g., CP1250/CP1252), it is 1 byte (sizeof == 2).
+ */
+constexpr inline bool RELIABLE_UTF8_CONSOLE = internal::RELIABLE_UTF8_CONSOLE<nson::PLATFORM>;
+
+};// namespace nson::features

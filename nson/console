@@ -1,0 +1,110 @@
+// SPDX-FileCopyrightText: Copyright (c) 2026 us4us Ltd.
+// SPDX-License-Identifier: MIT
+
+#pragma once
+
+#include <format>
+#include <iostream>
+#include <print>
+#include <sstream>
+#include <string>
+#include <string_view>
+
+#include <nson/features>
+#include <nson/internal/console>
+
+namespace nson {
+
+/**
+ * Proxy of std::cout that provides a consistent interface for writing UTF-8 output to the console across platforms.
+ * It handles the necessary platform-specific setup for UTF-8 output, especially on Windows.
+ * This is the only way that RichConsole should be used; do not use it directly.
+ */
+inline constexpr console::internal::RichConsole cout{};
+
+namespace xterm {
+namespace cursor {
+/**
+ * Produce an ANSI/XTerm escape sequence to move the cursor to a specific row and column.
+ * @param row The row number (1-based).
+ * @param col The column number (1-based).
+ * @return A string containing the escape sequence to move the cursor.
+ */
+inline std::string moveTo(size_t row, size_t col) { return std::format("\033[{};{}H", row, col); }
+
+/**
+ * Produce an ANSI/XTerm escape sequence to move the cursor to the home position.
+ * @return A string containing the escape sequence to move the cursor to the home position.
+ */
+inline constexpr std::string_view home() { return "\033[H"; }
+
+/**
+ * Produce an ANSI/XTerm escape sequence to move the cursor up by a specified number of lines.
+ * @param n The number of lines to move the cursor up (default is 1).
+ * @return A string containing the escape sequence to move the cursor up.
+ */
+inline std::string moveUp(size_t n = 1) { return std::format("\033[{}A", n); }
+
+/**
+ * Produce an ANSI/XTerm escape sequence to move the cursor down by a specified number of lines.
+ * @param n The number of lines to move the cursor down (default is 1).
+ * @return A string containing the escape sequence to move the cursor down.
+ */
+inline std::string moveDown(size_t n = 1) { return std::format("\033[{}B", n); }
+
+/**
+ * Produce an ANSI/XTerm escape sequence to move the cursor right by a specified number of columns.
+ * @param n The number of columns to move the cursor right (default is 1).
+ * @return A string containing the escape sequence to move the cursor right.
+ */
+inline std::string moveRight(size_t n = 1) { return std::format("\033[{}C", n); }
+
+/**
+ * Produce an ANSI/XTerm escape sequence to move the cursor left by a specified number of columns.
+ * @param n The number of columns to move the cursor left (default is 1).
+ * @return A string containing the escape sequence to move the cursor left.
+ */
+inline std::string moveLeft(size_t n = 1) { return std::format("\033[{}D", n); }
+}// namespace cursor
+
+namespace erase {
+
+/**
+ * Produce an ANSI/XTerm escape sequence to erase the area below the cursor.
+ * @return A string containing the escape sequence to erase the area below the cursor.
+ */
+inline constexpr std::string_view below() { return "\033[0J"; }
+
+/**
+ * Produce an ANSI/XTerm escape sequence to erase the area above the cursor.
+ * @return A string containing the escape sequence to erase the area above the cursor.
+ */
+inline constexpr std::string_view above() { return "\033[1J"; }
+
+/**
+ * Produce an ANSI/XTerm escape sequence to erase the entire screen.
+ * @return A string containing the escape sequence to erase the entire screen.
+ */
+inline constexpr std::string_view all() { return "\033[2J"; }
+
+/**
+ * Produce an ANSI/XTerm escape sequence to erase the area to the right of the cursor.
+ * @return A string containing the escape sequence to erase the area to the right of the cursor.
+ */
+inline constexpr std::string_view right() { return "\033[0K"; }
+
+/**
+ * Produce an ANSI/XTerm escape sequence to erase the area to the left of the cursor.
+ * @return A string containing the escape sequence to erase the area to the left of the cursor.
+ */
+inline constexpr std::string_view left() { return "\033[1K"; }
+
+/**
+ * Produce an ANSI/XTerm escape sequence to erase the entire line where the cursor is located.
+ * @return A string containing the escape sequence to erase the entire line.
+ */
+inline constexpr std::string_view line() { return "\033[2K"; }
+}// namespace erase
+};// namespace xterm
+
+};// namespace nson

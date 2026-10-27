@@ -1,0 +1,136 @@
+// SPDX-FileCopyrightText: Copyright (c) 2026 us4us Ltd.
+// SPDX-License-Identifier: MIT
+
+#pragma once
+
+#include <format>
+#include <iostream>
+#include <print>
+#include <sstream>
+#include <string>
+#include <string_view>
+
+#include <nson/features>
+#include <nson/platform>
+
+#include <nson/internal/windows>
+
+namespace nson::console::internal {
+
+inline void ensureUtf8Console() {
+#if __nson_is_platform_windows
+    // "Magic" static - this will run exactly once.
+    static const bool initialized = []() {
+        SetConsoleOutputCP(CP_UTF8);
+        SetConsoleCP(CP_UTF8);
+
+        HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+        if (hOut != INVALID_HANDLE_VALUE && hOut != nullptr) {
+            DWORD mode = 0;
+            if (GetConsoleMode(hOut, &mode)) {
+                SetConsoleMode(hOut, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+            }
+        }
+        return true;
+    }();
+    (void) initialized;
+#endif
+}
+
+inline void writeRawUtf8(std::string_view outBuffer) {
+    if (outBuffer.empty())
+        return;
+    ensureUtf8Console();
+
+#if __nson_is_platform_windows
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hOut != INVALID_HANDLE_VALUE && hOut != nullptr) {
+        DWORD written = 0;
+        WriteFile(hOut, outBuffer.data(), static_cast<DWORD>(outBuffer.size()), &written, nullptr);
+    } else {
+        std::cout << outBuffer << std::flush;
+    }
+#else
+    std::cout << outBuffer << std::flush;
+#endif
+}
+
+/**
+ * A proxy class to handle rich console output consistently across platforms, especially for UTF-8 output.
+ */
+class RichOutputProxy {
+    std::ostringstream buffer;
+
+public:
+    RichOutputProxy() {
+        if constexpr (!features::RELIABLE_UTF8_CONSOLE) {
+            std::cerr << "Warning: The code was not compiled with UTF-8 character set."
+                         " This may cause issues with Unicode output in the console."
+                         " Lookup the /utf-8 MSVC/clang-cl flag for more details. "
+                      << std::endl;
+        }
+    };
+    RichOutputProxy(const RichOutputProxy &) = delete;
+    RichOutputProxy &operator=(const RichOutputProxy &) = delete;
+
+    RichOutputProxy(RichOutputProxy &&other) noexcept : buffer(std::move(other.buffer)) { other.buffer.clear(); }
+
+    ~RichOutputProxy() { flush(); }
+
+    /**
+     * Flush the internal buffer to the console. Equivalent to streaming std::flush to the proxy.
+     */
+    void flush() {
+        const auto view = buffer.view();// C++20 zero-copy view of internal buffer
+        if (!view.empty()) {
+            console::internal::writeRawUtf8(view);
+            buffer.str("");
+            buffer.clear();
+        }
+    }
+
+    /**
+     * Stream a value to the internal buffer.
+     * @param val The value to stream.
+     * @return A reference to the proxy for chaining.
+     */
+    template<typename T> auto &&operator<<(this auto &&self, const T &val) {
+        self.buffer << val;
+        return std::forward<decltype(self)>(self);
+    }
+
+    /**
+     * Stream a manipulator (like std::endl or std::flush) to the internal buffer.
+     * @param manip The manipulator to stream.
+     * @return A reference to the proxy for chaining.
+     */
+    auto &&operator<<(this auto &&self, std::ostream &(*manip)(std::ostream &) ) {
+        if (manip == static_cast<std::ostream &(*) (std::ostream &)>(std::flush)) {
+            self.flush();
+        } else if (manip == static_cast<std::ostream &(*) (std::ostream &)>(std::endl)) {
+            self.buffer << '\n';
+            self.flush();
+        } else {
+            manip(self.buffer);
+        }
+        return std::forward<decltype(self)>(self);
+    }
+};
+
+/**
+ * A console class that provides a rich output proxy for streaming output to the console.
+ */
+struct RichConsole {
+    template<typename T> RichOutputProxy operator<<(const T &val) const {
+        RichOutputProxy proxy;
+        proxy << val;
+        return proxy;
+    }
+
+    RichOutputProxy operator<<(std::ostream &(*manip)(std::ostream &) ) const {
+        RichOutputProxy proxy;
+        proxy << manip;
+        return proxy;
+    }
+};
+};// namespace nson::console::internal

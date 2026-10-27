@@ -82,6 +82,7 @@ The generated HTML lands in `docs/_build/html/`. Open
 - Always use common sense and your own judgement to make decisions about style and design - rules are not absolute and can be bent if it makes sense to do so.
 - Try to avoid using preprocessor macros. Sadly, sometimes they are unavoidable, but to keep tidy conform to the following rules:
   - Use our own local macros, as defined in `nson/features`, `nson/compiler` and `nson/platform` instead of using the compiler's/OS's macros directly. If the aforementioned files don't have a macro for your use case, it's up to you to add it.
+  - Exception: `DOXYGEN` in edge cases
   - *Generally* avoid using macros outside of the internal implementations.
   - *Generally* macros should only be used for conditional compilation for a specific platform/environment/etc. For other purposes, try using `constexpr` variables, `inline` functions, or templates instead.
 - `nson` is also sometimes used for driver code, without the full C++/STL support. Obviously, sometimes the headers here are meant for a full desktop environment (i.e. `<nson/console>`), but try to avoid making code unnecessarily dependent on the STL where possible. See `<nson/char_array>` for an example of how to make a header that works with `std::string` where possible, without having a hard dependency on it.

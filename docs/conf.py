@@ -48,3 +48,7 @@ breathe_default_members = ("members",)
 # Public headers are extensionless, so there is no extension to key off; match them
 # by path instead. (Unmapped files fall back to the C++ default regardless.)
 breathe_domain_by_file_pattern = {"*/nson/*": "cpp"}
+
+# -- C++ -------------------------------------------------------------------
+# Allow Sphinx to actually parse P0847 "Deducing this"
+cpp_id_attributes = ["this"]

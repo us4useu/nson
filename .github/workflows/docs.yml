@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - 'v*.*.x'
+      - doxygen-dbg
     tags:
       - 'v*.*.*'
   pull_request:

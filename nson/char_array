@@ -1,0 +1,222 @@
+// SPDX-FileCopyrightText: Copyright (c) 2026 us4us Ltd.
+// SPDX-License-Identifier: MIT
+
+#pragma once
+
+#include <cstddef>
+#include <type_traits>
+#include <utility>
+
+namespace nson {
+
+/**
+ * Concept to check if a type has a string-like interface (i.e., has data() and size() methods).
+ * Note: living here instead of in <nson/concepts> as that is uncompatible with freestanding environments.
+ */
+template<typename T>
+concept string_like = requires(const T &t) {
+    { t.data() } -> std::convertible_to<const char *>;
+    { t.size() } -> std::convertible_to<std::size_t>;
+};
+
+/**
+ * A "faux-string" type that is a wrapper around a fixed-size char array.
+ * It is intended to be used where we can't use std::string and don't want to use a
+ * non-owning type like std::string_view or raw char arrays.
+ * It implements a small subset of the std::string interface, mainly focusing on the low-hanging fruit,
+ * like assignment, comparison and conversion to other types - in short, the stuff that's easy to mess up.
+ * 
+ * By design, this is a 1:1 trivially-copyable wrapper for compat and ease of use.
+ * We could do something more complex by, for example, using the last char(s) to store the length, but that
+ * makes interop harder.
+*/
+template<std::size_t N>
+    requires(N > 1)
+struct CharArray {
+public:
+    /**
+     * Default constructor. Zero-initializes the internal char array.
+     */
+    constexpr CharArray() = default;
+
+    /**
+     * Constructor from a C-style string.
+     * @param str The C-style string to initialize the CharArray with.
+     */
+    constexpr CharArray(const char *str) { *this = str; }
+
+    /**
+     * Constructor from a string-like type (e.g., std::string, std::string_view) except for CharArray itself.
+     * @param str The string-like type to initialize the CharArray with.
+     */
+    template<nson::string_like Str>
+        requires(!std::is_same_v<std::remove_cvref_t<Str>, CharArray>)
+    constexpr CharArray(const Str &str) {
+        *this = str;
+    }
+
+    /**
+     * Subscript operator to access characters in the CharArray.
+     * @param index The index of the character to access.
+     * @return A reference to the character at the specified index.
+     */
+    constexpr char &operator[](std::size_t index) noexcept { return buffer[index]; }
+
+    /**
+     * Returns the size of the CharArray (including the null terminator).
+     * @return The size of the CharArray.
+     */
+    constexpr std::size_t size() const noexcept { return N; }
+
+    /**
+     * Returns a pointer to the internal null-terminated character array.
+     * @return A pointer to the internal character array.
+     */
+    constexpr const char *data() const noexcept { return buffer; }
+
+    /**
+     * Returns the length of the string stored in the CharArray (excluding the null terminator).
+     * @return The length of the string.
+     */
+    constexpr std::size_t length() const noexcept {
+        std::size_t len = 0;
+        while (len < N && buffer[len] != '\0') {
+            ++len;
+        }
+        return len;
+    }
+
+    /**
+     * Checks if the CharArray is empty (i.e., the first character is the null terminator).
+     * @return True if the CharArray is empty, false otherwise.
+     */
+    constexpr bool empty() const noexcept { return buffer[0] == '\0'; }
+
+    /**
+     * Returns a pointer to the internal null-terminated character array.
+     * @return A pointer to the internal character array.
+     */
+    constexpr const char *c_str() const noexcept { return buffer; }
+
+    /**
+     * Returns a pointer to the internal null-terminated character array (non-const version).
+     * @return A pointer to the internal character array.
+     */
+    constexpr char *c_str() noexcept { return buffer; }
+
+    /**
+     * Converts the CharArray to a different string-compatible type (e.g., std::string, std::string_view).
+     * This conversion is only enabled for types that can be constructed with a C-style string and a size.
+     * @tparam T The target string-compatible type.
+     * @return The converted string.
+     */
+    template<typename T>
+        requires(!std::is_same_v<std::remove_cvref_t<T>, CharArray>
+                 && std::is_constructible_v<T, const char *, std::size_t>)
+    constexpr operator T() const {
+        return T(buffer, length());
+    }
+
+    /**
+     * Assignment operator from a string-like type (e.g., std::string, std::string_view).
+     * @param str The string-like type to assign from.
+     * @return A reference to the assigned CharArray.
+     */
+    template<nson::string_like Str>
+        requires(!std::is_same_v<std::remove_cvref_t<Str>, CharArray>)
+    constexpr CharArray &operator=(const Str &str) noexcept {
+        const std::size_t max_len = N - 1;
+        const std::size_t str_len = static_cast<std::size_t>(str.size());
+        const std::size_t copy_size = str_len < max_len ? str_len : max_len;
+
+        const char *src = str.data();
+        for (std::size_t i = 0; i < copy_size; ++i) {
+            buffer[i] = src[i];
+        }
+        buffer[copy_size] = '\0';
+        return *this;
+    }
+
+    /**
+     * Assignment operator from a C-style string.
+     * @param str The C-style string to assign from.
+     * @return A reference to the assigned CharArray.
+     */
+    constexpr CharArray &operator=(const char *str) noexcept {
+        if (!str) {
+            buffer[0] = '\0';
+            return *this;
+        }
+        std::size_t i = 0;
+        for (; i < N - 1 && str[i] != '\0'; ++i) {
+            buffer[i] = str[i];
+        }
+        buffer[i] = '\0';
+        return *this;
+    }
+
+    /**
+     * Equality operator to compare two CharArray instances.
+     * @param other The CharArray to compare with.
+     * @return True if the two CharArrays are equal, false otherwise.
+     */
+    constexpr bool operator==(const CharArray &other) const noexcept {
+        for (std::size_t i = 0; i < N; ++i) {
+            if (buffer[i] != other.buffer[i])
+                return false;
+            if (buffer[i] == '\0')
+                break;
+        }
+        return true;
+    }
+
+    /**
+     * Equality operator to compare the CharArray with a string-like type (e.g., std::string, std::string_view).
+     * @tparam Str The string-like type to compare with.
+     * @param other The string-like type to compare with.
+     * @return True if the CharArray and the string-like type are equal, false otherwise.
+     */
+    template<nson::string_like Str>
+        requires(!std::is_same_v<std::remove_cvref_t<Str>, CharArray>)
+    constexpr bool operator==(const Str &other) const noexcept {
+        const std::size_t len = length();
+        if (len != static_cast<std::size_t>(other.size()))
+            return false;
+        const char *src = other.data();
+        for (std::size_t i = 0; i < len; ++i) {
+            if (buffer[i] != src[i])
+                return false;
+        }
+        return true;
+    }
+
+    /**
+     * Equality operator to compare the CharArray with a C-style string.
+     * @param other The C-style string to compare with.
+     * @return True if the CharArray and the C-style string are equal, false otherwise.
+     */
+    constexpr bool operator==(const char *other) const noexcept {
+        if (!other)
+            return false;
+        std::size_t i = 0;
+        for (; i < N && buffer[i] != '\0' && other[i] != '\0'; ++i) {
+            if (buffer[i] != other[i])
+                return false;
+        }
+        const bool this_ended = (i == N || buffer[i] == '\0');
+        const bool other_ended = (other[i] == '\0');
+        return this_ended && other_ended;
+    }
+
+private:
+    char buffer[N]{};
+
+} __attribute__((packed));
+
+// Simple check to ensure we didn't accidentally add padding to the CharArray struct
+static_assert(sizeof(CharArray<32>) == 32, "CharArray<32> should be 32 bytes");
+
+// Check if we're trivially copyable, which is important for ABI compatibility and trivial initialization.
+static_assert(std::is_trivially_copyable_v<CharArray<32>>, "CharArray<32> should be trivially copyable");
+
+}// namespace nson

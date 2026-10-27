@@ -12,9 +12,18 @@ enum class Compiler { CLANG, GCC, MSVC, UNKNOWN };
 // variants of the same compiler (e.g., clang vs. clang-cl)
 enum class CompilerSpecific { CLANG, CLANG_CL, GCC, MSVC, UNKNOWN };
 
+// Not ideal, but otherwise Doxygen wouldn't pick this up
+#ifdef DOXYGEN
 /**
  * A static, constexpr variable that holds the current compiler being used to compile the code.
  */
+constexpr Compiler COMPILER = Compiler::UNKNOWN;
+
+/**
+ * A static, constexpr variable that holds the specific compiler being used to compile the code.
+ */
+constexpr CompilerSpecific COMPILER_SPECIFIC = CompilerSpecific::UNKNOWN;
+#endif
 
 #if defined(__clang__)
 constexpr Compiler COMPILER = Compiler::CLANG;

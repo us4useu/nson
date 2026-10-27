@@ -10,8 +10,11 @@ namespace nson {
  * A type trait that provides a safe underlying type for a given type.
  * If the type is an enum, it will provide the underlying type.
  * Otherwise, it will provide the type itself.
+ * @tparam T The type to check.
+ * @sa safe_underlying_type_t
  */
 template<typename T, bool = std::is_enum_v<T>> struct safe_underlying_type {
+    /** The safe underlying type. */
     using type = T;
 };
 
@@ -19,6 +22,10 @@ template<typename T> struct safe_underlying_type<T, true> {
     using type = std::underlying_type_t<T>;
 };
 
+/**
+ * A type alias for the safe underlying type of a given type.
+ * @tparam T The type to check.
+ */
 template<typename T> using safe_underlying_type_t = typename safe_underlying_type<T>::type;
 
 };// namespace nson

@@ -10,8 +10,9 @@
 namespace nson {
 
 /**
- * Concept to check if a type has a string-like interface (i.e., has data() and size() methods).
- * Note: living here instead of in <nson/concepts> as that is uncompatible with freestanding environments.
+ * Concept to check if a type has a string-like interface (i.e., has data() and
+ * size() methods). Note: living here instead of in <nson/concepts> as that is
+ * uncompatible with freestanding environments.
  */
 template<typename T>
 concept string_like = requires(const T &t) {
@@ -21,15 +22,16 @@ concept string_like = requires(const T &t) {
 
 /**
  * A "faux-string" type that is a wrapper around a fixed-size char array.
- * It is intended to be used where we can't use std::string and don't want to use a
- * non-owning type like std::string_view or raw char arrays.
- * It implements a small subset of the std::string interface, mainly focusing on the low-hanging fruit,
- * like assignment, comparison and conversion to other types - in short, the stuff that's easy to mess up.
- * 
- * By design, this is a 1:1 trivially-copyable wrapper for compat and ease of use.
- * We could do something more complex by, for example, using the last char(s) to store the length, but that
- * makes interop harder.
-*/
+ * It is intended to be used where we can't use std::string and don't want to
+ * use a non-owning type like std::string_view or raw char arrays. It implements
+ * a small subset of the std::string interface, mainly focusing on the
+ * low-hanging fruit, like assignment, comparison and conversion to other types
+ * - in short, the stuff that's easy to mess up.
+ *
+ * By design, this is a 1:1 trivially-copyable wrapper for compat and ease of
+ * use. We could do something more complex by, for example, using the last
+ * char(s) to store the length, but that makes interop harder.
+ */
 template<std::size_t N>
     requires(N > 1)
 struct CharArray {
@@ -46,7 +48,8 @@ public:
     constexpr CharArray(const char *str) { *this = str; }
 
     /**
-     * Constructor from a string-like type (e.g., std::string, std::string_view) except for CharArray itself.
+     * Constructor from a string-like type (e.g., std::string, std::string_view)
+     * except for CharArray itself.
      * @param str The string-like type to initialize the CharArray with.
      */
     template<nson::string_like Str>
@@ -57,10 +60,25 @@ public:
 
     /**
      * Subscript operator to access characters in the CharArray.
+     * Handles typical overloads using deducing this
      * @param index The index of the character to access.
      * @return A reference to the character at the specified index.
      */
-    constexpr char &operator[](std::size_t index) noexcept { return buffer[index]; }
+    constexpr auto &&operator[](this auto &&self, std::size_t idx) noexcept {
+        return std::forward_like<decltype(self)>(self.buffer[idx]);
+    }
+
+    /**
+     * Return an iterator to the beginning of the data
+     * @return An iterator to the beginning of the internal buffer.
+     */
+    constexpr auto begin(this auto &&self) noexcept { return self.buffer; }
+
+    /**
+     * Return an iterator to the end of the data
+     * @return An iterator to the end of the internal buffer.
+     */
+    constexpr auto end(this auto &&self) noexcept { return self.buffer + self.length(); }
 
     /**
      * Returns the size of the CharArray (including the null terminator).
@@ -75,7 +93,8 @@ public:
     constexpr const char *data() const noexcept { return buffer; }
 
     /**
-     * Returns the length of the string stored in the CharArray (excluding the null terminator).
+     * Returns the length of the string stored in the CharArray (excluding the
+     * null terminator).
      * @return The length of the string.
      */
     constexpr std::size_t length() const noexcept {
@@ -87,14 +106,16 @@ public:
     }
 
     /**
-     * Checks if the CharArray is empty (i.e., the first character is the null terminator).
+     * Checks if the CharArray is empty (i.e., the first character is the null
+     * terminator).
      * @return True if the CharArray is empty, false otherwise.
      */
     constexpr bool empty() const noexcept { return buffer[0] == '\0'; }
 
-    // c_str() is a common method in string-like types; keep the name just so it's easier to remember
-    //NOLINTBEGIN(readability-identifier-naming)
-    
+    // c_str() is a common method in string-like types; keep the name just so it's
+    // easier to remember
+    // NOLINTBEGIN(readability-identifier-naming)
+
     /**
      * Returns a pointer to the internal null-terminated character array.
      * @return A pointer to the internal character array.
@@ -102,12 +123,12 @@ public:
     constexpr const char *c_str() const noexcept { return buffer; }
 
     /**
-     * Returns a pointer to the internal null-terminated character array (non-const version).
+     * Returns a pointer to the internal null-terminated character array
+     * (non-const version).
      * @return A pointer to the internal character array.
      */
     constexpr char *c_str() noexcept { return buffer; }
-
-    //NOLINTEND(readability-identifier-naming)
+    // NOLINTEND(readability-identifier-naming)
 
     /**
      * Converts the CharArray to a different string-compatible type (e.g., std::string, std::string_view).
@@ -176,10 +197,12 @@ public:
     }
 
     /**
-     * Equality operator to compare the CharArray with a string-like type (e.g., std::string, std::string_view).
+     * Equality operator to compare the CharArray with a string-like type (e.g.,
+     * std::string, std::string_view).
      * @tparam Str The string-like type to compare with.
      * @param other The string-like type to compare with.
-     * @return True if the CharArray and the string-like type are equal, false otherwise.
+     * @return True if the CharArray and the string-like type are equal, false
+     * otherwise.
      */
     template<nson::string_like Str>
         requires(!std::is_same_v<std::remove_cvref_t<Str>, CharArray>)
@@ -198,7 +221,8 @@ public:
     /**
      * Equality operator to compare the CharArray with a C-style string.
      * @param other The C-style string to compare with.
-     * @return True if the CharArray and the C-style string are equal, false otherwise.
+     * @return True if the CharArray and the C-style string are equal, false
+     * otherwise.
      */
     constexpr bool operator==(const char *other) const noexcept {
         if (!other)
@@ -218,10 +242,12 @@ private:
 
 } __attribute__((packed));
 
-// Simple check to ensure we didn't accidentally add padding to the CharArray struct
+// Simple check to ensure we didn't accidentally add padding to the CharArray
+// struct
 static_assert(sizeof(CharArray<32>) == 32, "CharArray<32> should be 32 bytes");
 
-// Check if we're trivially copyable, which is important for ABI compatibility and trivial initialization.
+// Check if we're trivially copyable, which is important for ABI compatibility
+// and trivial initialization.
 static_assert(std::is_trivially_copyable_v<CharArray<32>>, "CharArray<32> should be trivially copyable");
 
 }// namespace nson

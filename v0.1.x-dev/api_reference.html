@@ -431,7 +431,10 @@
 <dd><div class="docutils container">
 <em>#include &lt;char_array&gt;</em></div>
 <p>A “faux-string” type that is a wrapper around a fixed-size char array. </p>
-<p>It is intended to be used where we can’t use std::string and don’t want to use a non-owning type like std::string_view or raw char arrays. It implements a small subset of the std::string interface, mainly focusing on the low-hanging fruit, like assignment, comparison and conversion to other types - in short, the stuff that’s easy to mess up.</p>
+<p>It is intended to be used where we can’t use std::string and don’t want to use a non-owning type like std::string_view or raw char arrays. It implements a small subset of the std::string interface, mainly focusing on the low-hanging fruit, like assignment, comparison and conversion to other types<ul class="simple">
+<li><p>in short, the stuff that’s easy to mess up.</p></li>
+</ul>
+</p>
 <p>By design, this is a 1:1 trivially-copyable wrapper for compat and ease of use. We could do something more complex by, for example, using the last char(s) to store the length, but that makes interop harder. </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
@@ -465,15 +468,38 @@
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4nson9CharArrayixENSt6size_tE">
-<span id="_CPPv3N4nson9CharArrayixENSt6size_tE"></span><span id="_CPPv2N4nson9CharArrayixENSt6size_tE"></span><span id="nson::CharArray::subscript-operator__std::sCE"></span><span class="target" id="structnson_1_1CharArray_1a391600f752e83b2feeb92be99d9db5d6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">[]</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">index</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4N4nson9CharArrayixENSt6size_tE" title="Link to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4nson9CharArrayixERRDaNSt6size_tE">
+<span id="_CPPv3N4nson9CharArrayixERRDaNSt6size_tE"></span><span id="_CPPv2N4nson9CharArrayixERRDaNSt6size_tE"></span><span id="nson::CharArray::subscript-operator__autoRR.std::sCE"></span><span class="target" id="structnson_1_1CharArray_1a556ed6a28e7483bb21523aac49550a9a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">[]</span></span></span><span class="sig-paren">(</span><span class="pre">this</span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">self</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">idx</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4N4nson9CharArrayixERRDaNSt6size_tE" title="Link to this definition"></a><br /></dt>
 <dd><p>Subscript operator to access characters in the <a class="reference internal" href="#structnson_1_1CharArray"><span class="std std-ref">CharArray</span></a>. </p>
+<p>Handles typical overloads using deducing this </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>index</strong> – The index of the character to access. </p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>A reference to the character at the specified index. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4nson9CharArray5beginERRDa">
+<span id="_CPPv3N4nson9CharArray5beginERRDa"></span><span id="_CPPv2N4nson9CharArray5beginERRDa"></span><span id="nson::CharArray::begin__autoRRCE"></span><span class="target" id="structnson_1_1CharArray_1a702b3e5b2d609e68430d0f9c804424e3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">begin</span></span></span><span class="sig-paren">(</span><span class="pre">this</span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">self</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4N4nson9CharArray5beginERRDa" title="Link to this definition"></a><br /></dt>
+<dd><p>Return an iterator to the beginning of the data. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>An iterator to the beginning of the internal buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4nson9CharArray3endERRDa">
+<span id="_CPPv3N4nson9CharArray3endERRDa"></span><span id="_CPPv2N4nson9CharArray3endERRDa"></span><span id="nson::CharArray::end__autoRRCE"></span><span class="target" id="structnson_1_1CharArray_1a5ca21441c9c508558eb2f30286895073"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">end</span></span></span><span class="sig-paren">(</span><span class="pre">this</span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">self</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4N4nson9CharArray3endERRDa" title="Link to this definition"></a><br /></dt>
+<dd><p>Return an iterator to the end of the data. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>An iterator to the end of the internal buffer. </p>
 </dd>
 </dl>
 </dd></dl>

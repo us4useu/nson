@@ -48,10 +48,15 @@ template<typename T>
     requires nttp_compatible<T>
 struct is_nttp_compatible<T> : std::true_type {};
 
+// Justification: matching common type traits helper naming conventions
+//NOLINTBEGIN(readability-identifier-naming)
+
 /**
  * A helper variable template that checks if a type can be used as a non-type template parameter (NTTP).
  * @tparam T The type to check.
  */
 template<typename T> inline constexpr bool is_nttp_compatible_v = is_nttp_compatible<T>::value;
+
+//NOLINTEND(readability-identifier-naming)
 
 };// namespace nson

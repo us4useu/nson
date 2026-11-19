@@ -7,6 +7,8 @@
 #include <type_traits>
 #include <utility>
 
+#include "type_traits"
+
 namespace nson {
 
 /**
@@ -237,7 +239,6 @@ public:
         return this_ended && other_ended;
     }
 
-private:
     char buffer[N]{};
 
 } __attribute__((packed));
@@ -249,5 +250,10 @@ static_assert(sizeof(CharArray<32>) == 32, "CharArray<32> should be 32 bytes");
 // Check if we're trivially copyable, which is important for ABI compatibility
 // and trivial initialization.
 static_assert(std::is_trivially_copyable_v<CharArray<32>>, "CharArray<32> should be trivially copyable");
+
+// In order to do ungodly metaprogramming things, like using CharArray as a NTTP,
+// it needs to be structural (see P1907R1).
+// Unfortunately std::is_structural is C++26, like all good things in this world, so we had to roll our own.
+static_assert(nson::is_nttp_compatible_v<CharArray<32>>, "CharArray<32> should be NTTP compatible");
 
 }// namespace nson

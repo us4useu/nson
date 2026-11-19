@@ -3,9 +3,12 @@
 
 #pragma once
 
-#include <type_traits>
+#include "internal/type_traits"
+
+#include <concepts>
 
 namespace nson {
+
 /** 
  * A type trait that provides a safe underlying type for a given type.
  * If the type is an enum, it will provide the underlying type.
@@ -27,5 +30,28 @@ template<typename T> struct safe_underlying_type<T, true> {
  * @tparam T The type to check.
  */
 template<typename T> using safe_underlying_type_t = typename safe_underlying_type<T>::type;
+
+/**
+ * A concept that checks if a type can be used as a non-type template parameter (NTTP).
+ * @tparam T The type to check.
+ */
+template<typename T>
+concept nttp_compatible = requires { typename nson::internal::type_traits::nttp_compatible_impl<T>; };
+
+/**
+ * A type-trait version of the nttp_compatible concept.
+ * @tparam T The type to check.
+ */
+template<typename T> struct is_nttp_compatible : std::false_type {};
+
+template<typename T>
+    requires nttp_compatible<T>
+struct is_nttp_compatible<T> : std::true_type {};
+
+/**
+ * A helper variable template that checks if a type can be used as a non-type template parameter (NTTP).
+ * @tparam T The type to check.
+ */
+template<typename T> inline constexpr bool is_nttp_compatible_v = is_nttp_compatible<T>::value;
 
 };// namespace nson

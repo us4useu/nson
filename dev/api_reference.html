@@ -67,9 +67,11 @@
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N4nson10IS_WINDOWSE"><code class="docutils literal notranslate"><span class="pre">IS_WINDOWS</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N4nson8IS_LINUXE"><code class="docutils literal notranslate"><span class="pre">IS_LINUX</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N4nson16WHITESPACE_CHARSE"><code class="docutils literal notranslate"><span class="pre">WHITESPACE_CHARS</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4I0EN4nson20is_nttp_compatible_vE"><code class="docutils literal notranslate"><span class="pre">is_nttp_compatible_v</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4I_NSt6size_tEEN4nson9CharArrayE"><code class="docutils literal notranslate"><span class="pre">nson::CharArray</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4I0_bEN4nson20safe_underlying_typeE"><code class="docutils literal notranslate"><span class="pre">nson::safe_underlying_type</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4I0EN4nson20safe_underlying_typeI1TXL1EEEE"><code class="docutils literal notranslate"><span class="pre">nson::safe_underlying_type&lt;</span> <span class="pre">T,</span> <span class="pre">true</span> <span class="pre">&gt;</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4I0EN4nson18is_nttp_compatibleE"><code class="docutils literal notranslate"><span class="pre">nson::is_nttp_compatible</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N4nson4bitsE"><code class="docutils literal notranslate"><span class="pre">nson::bits</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N4nson5xtermE"><code class="docutils literal notranslate"><span class="pre">nson::xterm</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N4nson8featuresE"><code class="docutils literal notranslate"><span class="pre">nson::features</span></code></a></li>
@@ -424,6 +426,17 @@
 <span id="_CPPv3N4nson16WHITESPACE_CHARSE"></span><span id="_CPPv2N4nson16WHITESPACE_CHARSE"></span><span id="nson::WHITESPACE_CHARS__ssC"></span><span class="target" id="namespacenson_1ab988717490e4f456067d1f2a0906f928"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WHITESPACE_CHARS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;</span> <span class="pre">\t\n\r\f\v&quot;</span></span><a class="headerlink" href="#_CPPv4N4nson16WHITESPACE_CHARSE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN4nson20is_nttp_compatible_vE">
+<span id="_CPPv3I0EN4nson20is_nttp_compatible_vE"></span><span id="_CPPv2I0EN4nson20is_nttp_compatible_vE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="namespacenson_1ab7e7746ee6f9799495f127a6d1790909"></span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_nttp_compatible_v</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN4nson18is_nttp_compatibleE" title="nson::is_nttp_compatible"><span class="n"><span class="pre">is_nttp_compatible</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN4nson20is_nttp_compatible_vE" title="nson::is_nttp_compatible_v::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">value</span></span><a class="headerlink" href="#_CPPv4I0EN4nson20is_nttp_compatible_vE" title="Link to this definition"></a><br /></dt>
+<dd><p>A helper variable template that checks if a type can be used as a non-type template parameter (NTTP). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>T</strong> – The type to check. </p>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4I_NSt6size_tEEN4nson9CharArrayE">
@@ -659,6 +672,14 @@
 </dd></dl>
 
 </div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4nson9CharArray6bufferE">
+<span id="_CPPv3N4nson9CharArray6bufferE"></span><span id="_CPPv2N4nson9CharArray6bufferE"></span><span id="nson::CharArray::buffer__cA"></span><span class="target" id="structnson_1_1CharArray_1afb84de3fdb365e4b35e9e6717ea8e61c"></span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">buffer</span></span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#_CPPv4I_NSt6size_tEEN4nson9CharArrayE" title="nson::CharArray::N"><span class="n"><span class="pre">N</span></span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4nson9CharArray6bufferE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
 </dd></dl>
 
 <dl class="cpp struct">
@@ -701,6 +722,26 @@
 <dd></dd></dl>
 
 </div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN4nson18is_nttp_compatibleE">
+<span id="_CPPv3I0EN4nson18is_nttp_compatibleE"></span><span id="_CPPv2I0EN4nson18is_nttp_compatibleE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnson_1_1is__nttp__compatible"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_nttp_compatible</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">false_type</span></span><a class="headerlink" href="#_CPPv4I0EN4nson18is_nttp_compatibleE" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;type_traits&gt;</em></div>
+<p>A type-trait version of the nttp_compatible concept. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>T</strong> – The type to check. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnson_1_1is__nttp__compatible_3_01T_01_4"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_nttp_compatible</span></span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN4nson18is_nttp_compatibleE" title="nson::is_nttp_compatible::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">false_type</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">true_type</span></span><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;type_traits&gt;</em></div>
 </dd></dl>
 
 <dl class="cpp type">
